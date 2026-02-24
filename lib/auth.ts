@@ -35,8 +35,13 @@ export const authOptions: NextAuthOptions = {
           });
 
           // Check if user exists and has password
-          if (!user || !user.passwordHash) {
+          if (!user || !user.password) {
             throw new Error("Invalid email or password");
+          }
+
+          // Check if username exists
+          if (!user.username) {
+            throw new Error("Username not found for user");
           }
 
           // Check if email is verified (optional - remove if you don't require verification)
@@ -54,7 +59,7 @@ export const authOptions: NextAuthOptions = {
           // Verify password
           const isPasswordValid = await bcrypt.compare(
             password,
-            user.passwordHash,
+            user.password!,
           );
           if (!isPasswordValid) {
             throw new Error("Invalid email or password");
@@ -73,6 +78,7 @@ export const authOptions: NextAuthOptions = {
             image: user.avatarUrl || null,
             role: user.role,
             status: user.status,
+            username: user.username,
           };
         } catch (error: unknown) {
           const message =
@@ -92,6 +98,7 @@ export const authOptions: NextAuthOptions = {
         token.name = (user.name as string) ?? token.name;
         token.email = (user.email as string) ?? token.email;
         token.picture = (user.image as string) ?? token.picture;
+        token.username = (user.username as string) ?? token.username;
         token.lastUpdated = Date.now();
       }
 
@@ -118,6 +125,7 @@ export const authOptions: NextAuthOptions = {
               status: true,
               fullName: true,
               avatarUrl: true,
+              username: true,
             },
           });
 
@@ -127,6 +135,7 @@ export const authOptions: NextAuthOptions = {
             token.status = dbUser.status;
             token.name = dbUser.fullName;
             token.picture = dbUser.avatarUrl;
+            token.username = dbUser.username;
             token.lastUpdated = Date.now();
           }
         } catch (error) {
@@ -144,6 +153,8 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.name as string;
         session.user.email = token.email as string;
         session.user.image = token.picture as string | null;
+        (session.user as { username?: string }).username =
+          token.username as string;
 
         // Add isAdmin helper
         session.user.isAdmin = token.role === "ADMIN";
@@ -178,11 +189,12 @@ export const authOptions: NextAuthOptions = {
               email: user.email!,
               fullName: user.name!,
               avatarUrl: user.image ?? null,
-              role: "MEMBER",
+              role: "USER",
               status: "ACTIVE",
               emailVerified: new Date(), // Google accounts are pre-verified
-              // passwordHash is required by the Prisma schema; OAuth users don't have one.
-              passwordHash: "",
+              // password is required by the Prisma schema; OAuth users don't have one.
+              password: "",
+              username: user.username ?? "google_user", // fallback username for OAuth
             },
           });
           return true;

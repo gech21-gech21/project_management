@@ -8,13 +8,13 @@ function AuthContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { update } = useSession();
@@ -57,8 +57,6 @@ function AuthContent() {
             setError("Login failed: " + result.error);
           }
         } else {
-          // Force session update to include latest subscription data
-          console.log("Login successful, updating session...");
           await update();
           router.push("/");
         }
@@ -72,21 +70,30 @@ function AuthContent() {
             email,
             password,
             name,
+            username,
           }),
         });
 
         const data = await response.json();
 
         if (response.ok) {
-          // Always require verification now
-          setSuccess("Registration successful! Please check your email to verify your account.");
-          // Show verification link for development
-          if (data.data?.verificationToken) {
-            setSuccess(data.message + ` (Dev: Click here to verify: /api/auth/verify-email?token=${data.data.verificationToken})`);
+          if (data.data?.exists) {
+            if (data.data.field === "username") {
+              setError("Username already taken. Please choose another.");
+            } else if (data.data.verified) {
+              setError("User with this email already exists. Please login.");
+            } else {
+              setSuccess("Verification email resent. Please check your inbox.");
+            }
+          } else {
+            setSuccess("Registration successful! Please check your email to verify your account.");
+            if (data.data?.verificationToken) {
+              setSuccess(data.data.message + ` (Dev: Click here to verify: /api/auth/verify-email?token=${data.data.verificationToken})`);
+            }
+            setPassword("");
+            setName("");
+            setUsername("");
           }
-          // Clear form data but don't switch to login mode
-          setPassword("");
-          setName("");
         } else {
           setError(data.error || "Registration failed");
         }
@@ -101,7 +108,6 @@ function AuthContent() {
 
   const handleGoogleLogin = async () => {
     try {
-      // For OAuth providers, allow NextAuth to handle the full redirect flow
       await signIn("google", { callbackUrl: "/" });
     } catch (err) {
       setError("Google login failed");
@@ -147,134 +153,96 @@ function AuthContent() {
     }
   };
 
-  return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#ffffff',
-    }}>
+  const suggestUsernameFromEmail = (email: string) => {
+    if (email && email.includes('@') && !username) {
+      const suggested = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+      setUsername(suggested);
+    }
+  };
 
+  return (
+    <div className="min-h-screen bg-white">
       {/* Auth Form Container */}
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px',
-      }}>
-        <div style={{
-          background: '#ffffff',
-          border: '1px solid #e5e7eb',
-          borderRadius: '12px',
-          padding: '40px 32px',
-          width: '100%',
-          maxWidth: '450px',
-          color: '#1f2937',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        }}>
+      <div className="min-h-screen flex items-center justify-center p-5">
+        <div className="bg-white border border-gray-200 rounded-xl p-8 sm:p-10 w-full max-w-md shadow-lg">
           {/* Title */}
-          <h1 style={{
-            fontSize: '32px',
-            fontWeight: 'bold',
-            marginBottom: '28px',
-            color: '#1f2937',
-            textAlign: 'center',
-          }}>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-7 text-gray-800 text-center">
             {isLogin ? "Sign In" : "Sign Up"}
           </h1>
 
           {/* Error/Success Messages */}
           {error && (
-            <div style={{
-              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1))',
-              border: '1px solid rgba(239, 68, 68, 0.4)',
-              color: '#ef4444',
-              padding: '12px 20px',
-              borderRadius: '12px',
-              marginBottom: '16px',
-              fontSize: '14px',
-              backdropFilter: 'blur(10px)',
-            }}>
+            <div className="bg-red-50 border border-red-200 text-red-600 px-5 py-3 rounded-lg mb-4 text-sm">
               {error}
             </div>
           )}
 
           {success && (
-            <div style={{
-              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1))',
-              border: '1px solid rgba(16, 185, 129, 0.4)',
-              color: '#10b981',
-              padding: '12px 20px',
-              borderRadius: '12px',
-              marginBottom: '16px',
-              fontSize: '14px',
-              backdropFilter: 'blur(10px)',
-            }}>
+            <div className="bg-green-50 border border-green-200 text-green-600 px-5 py-3 rounded-lg mb-4 text-sm break-words">
               {success}
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
-              <div style={{ marginBottom: '16px' }}>
-                <input
-                  type="text"
-                  placeholder="Full name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    fontSize: '16px',
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    color: '#374151',
-                    outline: 'none',
-                  }}
-                  required
-                  disabled={loading}
-                />
-              </div>
+              <>
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Full name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-4 py-3 text-base bg-white border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+                
+                {/* Username Field */}
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                    className="w-full px-4 py-3 text-base bg-white border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    required
+                    disabled={loading}
+                    pattern="[a-z0-9_]{3,20}"
+                    title="Username must be 3-20 characters and can only contain lowercase letters, numbers, and underscores"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Only lowercase letters, numbers, and underscores (3-20 characters)
+                  </p>
+                </div>
+              </>
             )}
             
-            <div style={{ marginBottom: '16px' }}>
+            <div>
               <input
                 type="email"
-                placeholder="Email or phone number"
+                placeholder="Email address"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  fontSize: '16px',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  color: '#374151',
-                  outline: 'none',
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (!isLogin && !username) {
+                    suggestUsernameFromEmail(e.target.value);
+                  }
                 }}
+                className="w-full px-4 py-3 text-base bg-white border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 required
                 disabled={loading}
               />
             </div>
             
-            <div style={{ marginBottom: '16px' }}>
+            <div>
               <input
                 type="password"
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  fontSize: '16px',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  color: '#374151',
-                  outline: 'none',
-                }}
+                className="w-full px-4 py-3 text-base bg-white border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 required
                 disabled={loading}
                 minLength={8}
@@ -283,39 +251,15 @@ function AuthContent() {
             
             <button 
               type="submit"
-              style={{
-                width: '100%',
-                padding: '12px',
-                fontSize: '16px',
-                fontWeight: '600',
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.6 : 1,
-                marginTop: '16px',
-                marginBottom: '12px',
-                transition: 'background-color 0.2s ease',
-              }}
+              className="w-full py-3 text-base font-semibold bg-blue-500 text-white border-none rounded-md cursor-pointer transition-colors hover:bg-blue-600 disabled:opacity-60 disabled:cursor-not-allowed mt-4 mb-3"
               disabled={loading}
-              onMouseOver={(e) => {
-                if (!loading) {
-                  e.currentTarget.style.backgroundColor = '#1d4ed8';
-                }
-              }}
-              onMouseOut={(e) => {
-                if (!loading) {
-                  e.currentTarget.style.backgroundColor = '#3b82f6';
-                }
-              }}
             >
               {loading ? "Please wait..." : (isLogin ? "Sign In" : "Sign Up")}
             </button>
 
             {/* Forgot Password Link */}
             {isLogin && (
-              <div style={{ textAlign: 'center', marginTop: '12px' }}>
+              <div className="text-center mt-3">
                 <button
                   onClick={() => {
                     setShowForgotPassword(true);
@@ -323,16 +267,9 @@ function AuthContent() {
                     setError("");
                     setSuccess("");
                   }}
-                  style={{
-                    color: '#6b7280',
-                    textDecoration: 'none',
-                    cursor: 'pointer',
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                  }}
+                  className="text-gray-500 text-sm font-medium hover:text-gray-700 transition disabled:opacity-60"
                   disabled={loading}
+                  type="button"
                 >
                   Forgot your password?
                 </button>
@@ -341,8 +278,8 @@ function AuthContent() {
           </form>
 
           {/* Toggle Form */}
-          <div style={{ marginTop: '16px', fontSize: '16px', color: '#6b7280' }}>
-            {isLogin ? "New to CineStream? " : "Already have an account? "}
+          <div className="mt-4 text-base text-gray-500 text-center">
+            {isLogin ? "New to Project Management? " : "Already have an account? "}
             <button
               onClick={() => {
                 setIsLogin(!isLogin);
@@ -351,62 +288,29 @@ function AuthContent() {
                 setEmail("");
                 setPassword("");
                 setName("");
+                setUsername("");
               }}
-              style={{
-                color: '#3b82f6',
-                textDecoration: 'none',
-                cursor: 'pointer',
-                background: 'none',
-                border: 'none',
-                fontSize: '16px',
-                fontWeight: '500',
-              }}
+              className="text-blue-500 font-medium hover:text-blue-600 transition disabled:opacity-60"
               disabled={loading}
+              type="button"
             >
               {isLogin ? "Sign up now" : "Sign in"}
             </button>
           </div>
 
           {/* Divider */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            margin: '24px 0',
-          }}>
-            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, #e5e7eb, transparent)' }}></div>
-            <span style={{ padding: '0 16px', color: '#9ca3af', fontSize: '14px' }}>OR</span>
-            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, #e5e7eb, transparent)' }}></div>
+          <div className="flex items-center my-6">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+            <span className="px-4 text-gray-400 text-sm">OR</span>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
           </div>
 
           {/* Google Login */}
           <button 
             onClick={handleGoogleLogin}
-            style={{
-              width: '100%',
-              padding: '12px',
-              fontSize: '14px',
-              backgroundColor: '#4285f4',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              transition: 'background-color 0.2s ease',
-            }}
+            className="w-full py-3 text-sm bg-blue-500 text-white border-none rounded-lg cursor-pointer flex items-center justify-center gap-2 transition-colors hover:bg-blue-600 disabled:opacity-60"
             disabled={loading}
-            onMouseOver={(e) => {
-              if (!loading) {
-                e.currentTarget.style.backgroundColor = '#3367d6';
-              }
-            }}
-            onMouseOut={(e) => {
-              if (!loading) {
-                e.currentTarget.style.backgroundColor = '#4285f4';
-              }
-            }}
+            type="button"
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path fill="white" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -419,54 +323,18 @@ function AuthContent() {
 
           {/* Forgot Password Modal */}
           {showForgotPassword && (
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.75)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1000,
-              padding: '20px'
-            }}>
-              <div style={{
-                backgroundColor: 'white',
-                borderRadius: '16px',
-                padding: '32px',
-                maxWidth: '400px',
-                width: '100%',
-                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-              }}>
-                <h3 style={{
-                  fontSize: '24px',
-                  fontWeight: '700',
-                  marginBottom: '16px',
-                  color: '#1f2937',
-                  textAlign: 'center'
-                }}>
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-5">
+              <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
+                <h3 className="text-2xl font-bold mb-4 text-gray-800 text-center">
                   Reset Password
                 </h3>
-                <p style={{
-                  fontSize: '16px',
-                  color: '#6b7280',
-                  marginBottom: '24px',
-                  textAlign: 'center'
-                }}>
+                <p className="text-base text-gray-500 mb-6 text-center">
                   Enter your email address and we will send you a link to reset your password.
                 </p>
 
                 <form onSubmit={handleForgotPassword}>
-                  <div style={{ marginBottom: '20px' }}>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '6px'
-                    }}>
+                  <div className="mb-5">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       Email Address
                     </label>
                     <input
@@ -474,26 +342,13 @@ function AuthContent() {
                       value={forgotPasswordEmail}
                       onChange={(e) => setForgotPasswordEmail(e.target.value)}
                       required
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        fontSize: '16px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        outline: 'none',
-                        transition: 'border-color 0.2s ease',
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                      onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg outline-none transition-colors focus:border-blue-500"
                       placeholder="Enter your email"
+                      disabled={loading}
                     />
                   </div>
 
-                  <div style={{
-                    display: 'flex',
-                    gap: '12px',
-                    justifyContent: 'flex-end'
-                  }}>
+                  <div className="flex gap-3 justify-end">
                     <button
                       type="button"
                       onClick={() => {
@@ -501,35 +356,14 @@ function AuthContent() {
                         setForgotPasswordEmail("");
                         setError("");
                       }}
-                      style={{
-                        padding: '12px 20px',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        backgroundColor: '#f3f4f6',
-                        color: '#374151',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        transition: 'background-color 0.2s ease',
-                      }}
+                      className="px-5 py-3 text-sm font-semibold bg-gray-100 text-gray-700 border-none rounded-lg cursor-pointer transition-colors hover:bg-gray-200 disabled:opacity-60"
                       disabled={loading}
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      style={{
-                        padding: '12px 20px',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        backgroundColor: '#3b82f6',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        opacity: loading ? 0.6 : 1,
-                        transition: 'background-color 0.2s ease',
-                      }}
+                      className="px-5 py-3 text-sm font-semibold bg-blue-500 text-white border-none rounded-lg cursor-pointer transition-colors hover:bg-blue-600 disabled:opacity-60"
                       disabled={loading}
                     >
                       {loading ? "Sending..." : "Send Reset Link"}
@@ -541,19 +375,11 @@ function AuthContent() {
           )}
 
           {/* Back to Home */}
-          <div style={{ textAlign: 'center', marginTop: '24px' }}>
+          <div className="text-center mt-6">
             <button
               onClick={() => router.push("/")}
-              style={{
-                color: '#9ca3af',
-                background: 'none',
-                border: 'none',
-                fontSize: '13px',
-                cursor: 'pointer',
-                transition: 'color 0.3s ease',
-              }}
-              onMouseOver={(e) => e.currentTarget.style.color = '#374151'}
-              onMouseOut={(e) => e.currentTarget.style.color = '#9ca3af'}
+              className="text-gray-400 text-xs hover:text-gray-600 transition"
+              type="button"
             >
               ← Back to Home
             </button>
@@ -567,15 +393,7 @@ function AuthContent() {
 export default function AuthPage() {
   return (
     <Suspense fallback={
-      <div style={{
-        minHeight: '100vh',
-        backgroundColor: '#ffffff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: '#1f2937',
-        fontSize: '18px'
-      }}>
+      <div className="min-h-screen bg-white flex items-center justify-center text-gray-700 text-lg">
         Loading...
       </div>
     }>

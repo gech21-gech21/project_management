@@ -31,23 +31,20 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className=" fixed top-0 left-0 w-full z-10 bg-amber-200 p-4 shadow-md">
-          {/* Fixed Header */}
-          <Header />
-        </div>
-        <div>
-          {/* Main Content Area - Scrolls independently */}
-          <main className="flex-1 overflow-y-auto pt-16">
-            {" "}
-            {/* pt-16 for header height */}
-            <NextAuthProvider>
+        <NextAuthProvider>
+          <div className="fixed top-0 left-0 w-full z-10 bg-amber-200 p-4 shadow-md">
+            {/* Fixed Header */}
+            <Header />
+          </div>
+          <div>
+            {/* Main Content Area - Scrolls independently */}
+            <main className="flex-1 overflow-y-auto pt-16">
               <div className="container mx-auto px-4 py-8">{children}</div>
-            </NextAuthProvider>
-          </main>
-
-          {/* Footer at bottom */}
-          <Footer />
-        </div>
+            </main>
+            {/* Footer at bottom */}
+            <Footer />
+          </div>
+        </NextAuthProvider>
       </body>
     </html>
   );

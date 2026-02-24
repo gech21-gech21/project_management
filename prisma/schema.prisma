@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 ///////////////////////
@@ -12,18 +12,19 @@ datasource db {
 ///////////////////////
 
 model User {
-  id           String     @id @default(uuid())
-  email        String     @unique
-  passwordHash String
-  fullName     String
-  avatarUrl    String?
-  role         Role       @default(MEMBER)
-  status       UserStatus @default(ACTIVE)
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String?
+  fullName  String
+  username  String   @unique
+  avatarUrl String?
+  role      Role     @default(USER)
+  status    UserStatus @default(ACTIVE)
 
   // Email verification fields
-  emailVerified            DateTime?
-  verificationToken        String?    @unique
-  verificationTokenExpiry  DateTime?
+  emailVerified           DateTime?
+  verificationToken       String? @unique
+  verificationTokenExpiry DateTime?
 
   // Department membership
   departmentId String?
@@ -50,11 +51,54 @@ model User {
   uploadedFiles      Attachment[]
   managedDepartments Department[]   @relation("DepartmentManager")
 
+  // NextAuth relations
+  accounts Account[]
+  sessions Session[]
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   lastLoginAt DateTime?
-
+  
   @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
 }
 
 model Project {
@@ -70,21 +114,17 @@ model Project {
   actualCost  Float?
   progress    Int           @default(0)
 
-  // Project Manager relation
   projectManagerId String?
   projectManager   User?   @relation("ProjectManager", fields: [projectManagerId], references: [id])
 
-  // Created by relation
   createdById String?
   createdBy   User?   @relation("CreatedProjects", fields: [createdById], references: [id])
 
-  // Relations
   tasks          Task[]
   milestones     Milestone[]
   projectMembers ProjectMember[]
   attachments    Attachment[]
 
-  // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -97,45 +137,36 @@ model Task {
   description String?
   taskCode    String? @unique
 
-  // Project relation
   projectId String
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  // Task attributes
   status   TaskStatus @default(TODO)
   priority Priority   @default(MEDIUM)
   type     TaskType?
 
-  // Time tracking
   estimatedHours Float?
   actualHours    Float?
   startDate      DateTime?
   dueDate        DateTime?
   completedAt    DateTime?
 
-  // Assigned to relation
   assignedToId String?
   assignedTo   User?   @relation("AssignedTasks", fields: [assignedToId], references: [id])
 
-  // Created by relation
   createdById String?
   createdBy   User?   @relation("CreatedTasks", fields: [createdById], references: [id])
 
-  // Subtask relations (self-reference)
   parentTaskId String?
   parentTask   Task?   @relation("Subtasks", fields: [parentTaskId], references: [id])
   subtasks     Task[]  @relation("Subtasks")
 
-  // Order/position
   position Int? @default(0)
 
-  // Relations
   comments    Comment[]
   timeLogs    TimeLog[]
   attachments Attachment[]
   taskHistory TaskHistory[]
 
-  // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -145,20 +176,16 @@ model Task {
 model ProjectMember {
   id        String     @id @default(uuid())
   
-  // Relations
   projectId String
   userId    String
   
-  // Member attributes
   role      MemberRole @default(MEMBER)
   joinedAt  DateTime   @default(now())
   leftAt    DateTime?
 
-  // Relations with cascade delete
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Unique constraint
   @@unique([projectId, userId])
   @@map("project_members")
 }
@@ -167,23 +194,18 @@ model Comment {
   id      String @id @default(uuid())
   content String
 
-  // Task relation
   taskId String
   task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
-  // User relation
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  // Reply relations (self-reference)
   parentCommentId String?
   parentComment   Comment?  @relation("Replies", fields: [parentCommentId], references: [id])
   replies         Comment[] @relation("Replies")
 
-  // Attachments as JSON
   attachments Json?
 
-  // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -193,21 +215,18 @@ model Comment {
 model TimeLog {
   id     String @id @default(uuid())
   
-  // Relations
   taskId String
   userId String
 
   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id])
 
-  // Time tracking
   startTime       DateTime
   endTime         DateTime?
   durationMinutes Int?
   description     String?
   billed          Boolean   @default(false)
 
-  // Timestamp
   createdAt DateTime @default(now())
 
   @@map("time_logs")
@@ -216,26 +235,21 @@ model TimeLog {
 model Attachment {
   id               String  @id @default(uuid())
   
-  // File metadata
   filename         String
   originalFilename String?
   filePath         String
   fileSize         BigInt?
   mimeType         String?
 
-  // Uploader relation
   uploaderId String
   uploader   User   @relation(fields: [uploaderId], references: [id])
 
-  // Optional task relation
   taskId String?
   task   Task?   @relation(fields: [taskId], references: [id])
 
-  // Optional project relation
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id])
 
-  // Timestamp
   createdAt DateTime @default(now())
 
   @@map("attachments")
@@ -244,25 +258,20 @@ model Attachment {
 model Department {
   id          String  @id @default(uuid())
   
-  // Department info
   name        String
   code        String? @unique
   description String?
 
-  // Manager relation
   managerId String?
   manager   User?   @relation("DepartmentManager", fields: [managerId], references: [id])
 
-  // Parent department relation (self-reference)
   parentId       String?
   parent         Department?  @relation("Subdepartments", fields: [parentId], references: [id])
   subdepartments Department[] @relation("Subdepartments")
 
-  // Relations
   users User[] @relation("UserDepartment")
   teams Team[]
 
-  // Timestamp
   createdAt DateTime @default(now())
 
   @@map("departments")
@@ -271,23 +280,18 @@ model Department {
 model TaskHistory {
   id     String @id @default(uuid())
   
-  // Task relation
   taskId String
   task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
-  // Change details
   fieldChanged String
   oldValue     String?
   newValue     String?
 
-  // User who made the change
   changedById String
   changedBy   User   @relation(fields: [changedById], references: [id])
 
-  // Change type
   changeType ChangeType
   
-  // Timestamp
   createdAt  DateTime   @default(now())
 
   @@map("task_history")
@@ -296,21 +300,17 @@ model TaskHistory {
 model Milestone {
   id          String  @id @default(uuid())
   
-  // Milestone info
   name        String
   description String?
 
-  // Project relation
   projectId String
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  // Dates and status
   dueDate       DateTime?
   completedDate DateTime?
   status        MilestoneStatus @default(PENDING)
   progress      Int             @default(0)
 
-  // Timestamp
   createdAt DateTime @default(now())
 
   @@map("milestones")
@@ -319,11 +319,9 @@ model Milestone {
 model Notification {
   id     String @id @default(uuid())
   
-  // User relation
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Notification content
   title       String
   message     String
   type        NotificationType
@@ -331,7 +329,6 @@ model Notification {
   relatedType String?
   isRead      Boolean          @default(false)
 
-  // Timestamp
   createdAt DateTime @default(now())
 
   @@map("notifications")
@@ -340,22 +337,17 @@ model Notification {
 model Team {
   id          String  @id @default(uuid())
   
-  // Team info
   name        String
   description String?
 
-  // Team lead relation
   teamLeadId String?
   teamLead   User?   @relation("TeamLead", fields: [teamLeadId], references: [id])
 
-  // Department relation
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id])
 
-  // Members relation
   members TeamMember[]
 
-  // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -365,20 +357,16 @@ model Team {
 model TeamMember {
   id       String    @id @default(uuid())
   
-  // Relations
   teamId   String
   userId   String
   
-  // Member attributes
-  role     TeamRole  @default(MEMBER)
+  role     role  @default(MEMBER)
   joinedAt DateTime  @default(now())
   leftAt   DateTime?
 
-  // Relations with cascade delete
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Unique constraint
   @@unique([teamId, userId])
   @@map("team_members")
 }
@@ -388,9 +376,9 @@ model TeamMember {
 ///////////////////////
 
 enum Role {
+  USER
+  TEAMLEADER
   ADMIN
-  PROJECT_MANAGER
-  MEMBER
 }
 
 enum UserStatus {
@@ -459,7 +447,7 @@ enum NotificationType {
   PROJECT_UPDATE
 }
 
-enum TeamRole {
+enum role {
   LEADER
   MEMBER
   GUEST
