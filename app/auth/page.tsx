@@ -209,12 +209,10 @@ function AuthContent() {
                     className="w-full px-4 py-3 text-base bg-white border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                     required
                     disabled={loading}
-                    pattern="[a-z0-9_]{3,20}"
+                    pattern="[a-z0-9_]{1,20}"
                     title="Username must be 3-20 characters and can only contain lowercase letters, numbers, and underscores"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Only lowercase letters, numbers, and underscores (3-20 characters)
-                  </p>
+               
                 </div>
               </>
             )}

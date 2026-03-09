@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+// app/api/admin/teams/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
+    const searchParams = request.nextUrl.searchParams;
     const limit = parseInt(searchParams.get("limit") || "50");
     const page = parseInt(searchParams.get("page") || "1");
     const skip = (page - 1) * limit;
@@ -19,7 +20,6 @@ export async function GET(request: Request) {
     const teams = await prisma.team.findMany({
       take: limit,
       skip,
-      orderBy: { createdAt: "desc" },
       include: {
         teamLead: {
           select: {
@@ -50,7 +50,18 @@ export async function GET(request: Request) {
               },
             },
           },
+          orderBy: {
+            joinedAt: "desc",
+          },
         },
+        _count: {
+          select: {
+            members: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
       },
     });
 
@@ -74,7 +85,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -99,12 +110,11 @@ export async function POST(request: Request) {
 
     if (existingTeam) {
       return NextResponse.json(
-        { error: "A team with this name already exists" },
+        { error: "Team with this name already exists" },
         { status: 400 }
       );
     }
 
-    // Create team
     const team = await prisma.team.create({
       data: {
         name,
@@ -112,18 +122,23 @@ export async function POST(request: Request) {
         departmentId: departmentId || null,
         teamLeadId: teamLeadId || null,
       },
-    });
-
-    // If team lead is assigned, add them as a member with LEADER role
-    if (teamLeadId) {
-      await prisma.teamMember.create({
-        data: {
-          teamId: team.id,
-          userId: teamLeadId,
-          role: "LEADER",
+      include: {
+        teamLead: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
         },
-      });
-    }
+        department: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+      },
+    });
 
     return NextResponse.json({ data: team }, { status: 201 });
   } catch (error) {

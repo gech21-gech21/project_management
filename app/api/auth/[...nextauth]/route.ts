@@ -97,26 +97,123 @@ export const authOptions: AuthOptions = {
       return session;
     },
 
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
+      // Always allow credentials sign in
+      if (account?.provider === "credentials") {
+        return true;
+      }
+
+      // Handle Google sign in
       if (account?.provider === "google") {
         try {
+          if (!user.email) {
+            return false;
+          }
+
+          // Check if user exists with this email
           const existingUser = await prisma.user.findUnique({
-            where: { email: user.email! },
+            where: { email: user.email },
             include: { accounts: true },
           });
 
-          if (existingUser) {
-            // ... rest of the signIn logic
-            return true;
-          } else {
-            // ... create new user logic
+          // Case 1: New user - create account
+          if (!existingUser) {
+            // Create new user with Google data
+            const newUser = await prisma.user.create({
+              data: {
+                email: user.email,
+                fullName: user.name || "",
+                username: user.email?.split('@')[0] || "", // Generate username from email
+                avatarUrl: user.image,
+                emailVerified: new Date(), // Google emails are verified
+                role: "USER",
+                accounts: {
+                  create: {
+                    type: account.type,
+                    provider: account.provider,
+                    providerAccountId: account.providerAccountId,
+                    access_token: account.access_token,
+                    expires_at: account.expires_at,
+                    token_type: account.token_type,
+                    scope: account.scope,
+                    id_token: account.id_token,
+                    session_state: account.session_state,
+                  }
+                }
+              }
+            });
             return true;
           }
+
+          // Case 2: Existing user with no accounts (created via credentials)
+          if (existingUser.accounts.length === 0) {
+            // Link Google account to existing user
+            await prisma.account.create({
+              data: {
+                userId: existingUser.id,
+                type: account.type,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                access_token: account.access_token,
+                expires_at: account.expires_at,
+                token_type: account.token_type,
+                scope: account.scope,
+                id_token: account.id_token,
+                session_state: account.session_state,
+              }
+            });
+
+            // Update user with Google info if not already set
+            if (!existingUser.avatarUrl && user.image) {
+              await prisma.user.update({
+                where: { id: existingUser.id },
+                data: { avatarUrl: user.image }
+              });
+            }
+
+            return true;
+          }
+
+          // Case 3: Check if this Google account is already linked
+          const existingAccount = existingUser.accounts.find(
+            acc => acc.provider === account.provider && 
+                   acc.providerAccountId === account.providerAccountId
+          );
+
+          if (existingAccount) {
+            return true; // Account already linked - allow sign in
+          }
+
+          // Case 4: User exists with different provider
+          // This is where OAuthAccountNotLinked would occur
+          // You have two options:
+
+          // OPTION 1: Automatically link the new Google account (Recommended)
+          await prisma.account.create({
+            data: {
+              userId: existingUser.id,
+              type: account.type,
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+              access_token: account.access_token,
+              expires_at: account.expires_at,
+              token_type: account.token_type,
+              scope: account.scope,
+              id_token: account.id_token,
+              session_state: account.session_state,
+            }
+          });
+          return true;
+
+          // OPTION 2: Return false to show error (uncomment below and comment OPTION 1)
+          // return false;
+
         } catch (error) {
           console.error("Error in Google signIn callback:", error);
           return false;
         }
       }
+
       return true;
     },
   },

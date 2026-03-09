@@ -1,5 +1,5 @@
+//admin/projects/components/projects-client.tsx
 "use client";
-"// use client"; // Commented out to remove stray line
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -16,7 +16,7 @@ import { ProjectForm } from "./project-form";
 import { ProjectCard } from "./project-card";
 
 // Define the type based on your actual data structure
-import { Project } from "@prisma/client";
+import { Project, ProjectStatus } from "@prisma/client";
 type ProjectWithDetails = Project & {
   teamLead?: {
     id: string;
@@ -24,13 +24,9 @@ type ProjectWithDetails = Project & {
     email: string;
     image: string | null;
   } | null;
-  department?: {
-    id: string;
-    name: string;
-  } | null;
   _count: {
     tasks: number;
-    teamMembers: number;
+    projectMembers: number; // Changed from teamMembers to projectMembers
   };
 };
 
@@ -43,13 +39,18 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
   const [projects, setProjects] = useState(initialProjects);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | "ALL">(
+    "ALL",
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const filteredProjects = projects.filter((project) => {
     const matchesSearch =
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (project.description?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase(),
+      ) ||
+      (project.teamLead?.name?.toLowerCase() || "").includes(
         searchQuery.toLowerCase(),
       );
 
@@ -96,9 +97,9 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: ProjectStatus) => {
     const statusConfig: Record<
-      string,
+      ProjectStatus,
       { color: string; icon: React.ElementType; label: string }
     > = {
       PLANNING: {
@@ -106,7 +107,7 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
         icon: Clock,
         label: "Planning",
       },
-      ACTIVE: {
+      IN_PROGRESS: {
         color:
           "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
         icon: CheckCircle2,
@@ -136,9 +137,9 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
 
   const stats = {
     total: projects.length,
-    active: projects.filter((p) => String(p.status) === "ACTIVE").length,
-    planning: projects.filter((p) => String(p.status) === "PLANNING").length,
-    completed: projects.filter((p) => String(p.status) === "COMPLETED").length,
+    active: projects.filter((p) => p.status === "IN_PROGRESS").length,
+    planning: projects.filter((p) => p.status === "PLANNING").length,
+    completed: projects.filter((p) => p.status === "COMPLETED").length,
   };
 
   return (
@@ -244,12 +245,14 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
             <Filter className="text-gray-400 w-5 h-5" />
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) =>
+                setStatusFilter(e.target.value as ProjectStatus | "ALL")
+              }
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
             >
               <option value="ALL">All Status</option>
               <option value="PLANNING">Planning</option>
-              <option value="ACTIVE">Active</option>
+              <option value="IN_PROGRESS">Active</option>
               <option value="ON_HOLD">On Hold</option>
               <option value="COMPLETED">Completed</option>
               <option value="CANCELLED">Cancelled</option>

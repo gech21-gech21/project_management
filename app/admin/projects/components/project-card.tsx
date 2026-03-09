@@ -1,3 +1,4 @@
+//admin/projects/components/project-card.tsx
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -17,7 +18,7 @@ type ProjectWithDetails = Project & {
   } | null;
   _count: {
     tasks: number;
-    teamMembers: number;
+    projectMembers: number;
   };
 };
 
@@ -135,7 +136,7 @@ export function ProjectCard({ project, status, StatusIcon }: ProjectCardProps) {
       <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
         <div className="flex items-center gap-1">
           <Users className="w-4 h-4" />
-          <span>{project._count.teamMembers} members</span>
+          <span>{project._count.projectMembers} members</span>
         </div>
         <div className="flex items-center gap-1">
           <Clock className="w-4 h-4" />

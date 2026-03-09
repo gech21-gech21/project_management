@@ -1,3 +1,4 @@
+//admin/projects/page.tsx
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
@@ -80,7 +81,7 @@ export default async function AdminProjectsPage() {
     updatedAt: p.updatedAt,
     _count: {
       tasks: p._count.tasks,
-      teamMembers: p._count.projectMembers ?? 0,
+      projectMembers: p._count.projectMembers ?? 0,
     },
   }));
 

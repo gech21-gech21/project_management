@@ -1,44 +1,61 @@
+// app/api/admin/teams/[teamId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
-// For Next.js 15, params should be awaited or handled differently
-export async function DELETE(
+export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ teamId: string }> | { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
 
     if (!session?.user || session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Unauthorized - Admin access required" }, 
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Handle params properly (works with both Promise and direct object)
     const { teamId } = await params;
 
-    console.log("Attempting to delete team with ID:", teamId);
-
-    if (!teamId) {
-      return NextResponse.json(
-        { error: "Team ID is required" }, 
-        { status: 400 }
-      );
-    }
-
-    // Check if team exists and get related data
     const team = await prisma.team.findUnique({
       where: { id: teamId },
       include: {
-        members: true,
-        projects: {
+        teamLead: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            username: true,
+            avatarUrl: true,
+          },
+        },
+        department: {
           select: {
             id: true,
             name: true,
+            code: true,
+          },
+        },
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                username: true,
+                avatarUrl: true,
+                role: true,
+              },
+            },
+          },
+          orderBy: {
+            joinedAt: "desc",
+          },
+        },
+        _count: {
+          select: {
+            members: true,
           },
         },
       },
@@ -46,68 +63,144 @@ export async function DELETE(
 
     if (!team) {
       return NextResponse.json(
-        { error: "Team not found" }, 
+        { error: "Team not found" },
         { status: 404 }
       );
     }
 
-    // Check if team has any projects
-    if (team.projects && team.projects.length > 0) {
-      return NextResponse.json(
-        { 
-          error: "Cannot delete team that has associated projects. Please reassign or delete the projects first.",
-          projects: team.projects 
-        },
-        { status: 400 }
-      );
-    }
-
-    // Use transaction to ensure all related records are deleted properly
-    await prisma.$transaction(async (tx) => {
-      // First delete all team members
-      if (team.members && team.members.length > 0) {
-        await tx.teamMember.deleteMany({
-          where: { teamId: teamId },
-        });
-      }
-
-      // Then delete the team
-      await tx.team.delete({
-        where: { id: teamId },
-      });
-    });
-
-    return NextResponse.json({ 
-      success: true,
-      message: "Team deleted successfully" 
-    });
-    
-  } catch (error: any) {
-    console.error("Error deleting team:", error);
-    
-    // Handle specific Prisma errors
-    if (error.code === 'P2003') {
-      return NextResponse.json(
-        { 
-          error: "Cannot delete team because it is referenced by other records. Please remove all references first.",
-          details: error.meta
-        },
-        { status: 400 }
-      );
-    }
-    
-    if (error.code === 'P2025') {
-      return NextResponse.json(
-        { error: "Team not found or already deleted" },
-        { status: 404 }
-      );
-    }
-    
+    return NextResponse.json({ data: team });
+  } catch (error) {
+    console.error("Error fetching team:", error);
     return NextResponse.json(
-      { 
-        error: "Failed to delete team. Please try again.",
-        details: error.message 
+      { error: "Failed to fetch team" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ teamId: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { teamId } = await params;
+    const body = await request.json();
+    const { name, description, departmentId, teamLeadId } = body;
+
+    if (!name) {
+      return NextResponse.json(
+        { error: "Team name is required" },
+        { status: 400 }
+      );
+    }
+
+    // Check if another team with same name exists
+    const existingTeam = await prisma.team.findFirst({
+      where: {
+        name,
+        NOT: {
+          id: teamId,
+        },
       },
+    });
+
+    if (existingTeam) {
+      return NextResponse.json(
+        { error: "Another team with this name already exists" },
+        { status: 400 }
+      );
+    }
+
+    const team = await prisma.team.update({
+      where: { id: teamId },
+      data: {
+        name,
+        description,
+        departmentId: departmentId || null,
+        teamLeadId: teamLeadId || null,
+      },
+      include: {
+        teamLead: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+        department: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json({ data: team });
+  } catch (error) {
+    console.error("Error updating team:", error);
+    return NextResponse.json(
+      { error: "Failed to update team" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ teamId: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { teamId } = await params;
+
+    // Check if team has members
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      include: {
+        _count: {
+          select: {
+            members: true,
+          },
+        },
+      },
+    });
+
+    if (!team) {
+      return NextResponse.json(
+        { error: "Team not found" },
+        { status: 404 }
+      );
+    }
+
+    if (team._count.members > 0) {
+      return NextResponse.json(
+        { error: "Cannot delete team with existing members. Please remove all members first." },
+        { status: 400 }
+      );
+    }
+
+    await prisma.team.delete({
+      where: { id: teamId },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting team:", error);
+    return NextResponse.json(
+      { error: "Failed to delete team" },
       { status: 500 }
     );
   }

@@ -32,7 +32,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextAuthProvider>
-          <div className="fixed top-0 left-0 w-full z-10 bg-amber-200 p-4 shadow-md">
+          <div className="">
             {/* Fixed Header */}
             <Header />
           </div>

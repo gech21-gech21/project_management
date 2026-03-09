@@ -10,9 +10,15 @@ const projectSchema = z.object({
   description: z.string().optional(),
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
-  teamLeadId: z.string().uuid("Invalid team lead ID"),
+  projectManagerId: z.string().uuid("Invalid project manager ID"),
   status: z
-    .enum(["PLANNING", "ACTIVE", "ON_HOLD", "COMPLETED", "CANCELLED"])
+    .enum([
+      "PLANNING",
+      "IN_PROGRESS",
+      "ON_HOLD",
+      "COMPLETED",
+      "CANCELLED",
+    ])
     .default("PLANNING"),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
 });
@@ -32,21 +38,21 @@ export async function POST(req: Request) {
     const body = await req.json();
     const validatedData = projectSchema.parse(body);
 
-    // Check if team lead exists and has TEAMLEADER role
-    const teamLead = await prisma.user.findFirst({
+    // Check if project manager exists and has TEAMLEADER role
+    const manager = await prisma.user.findFirst({
       where: {
-        id: validatedData.teamLeadId,
+        id: validatedData.projectManagerId,
         role: Role.TEAMLEADER,
       },
     });
 
-    if (!teamLead) {
-      return new NextResponse("Team lead not found or invalid role", {
+    if (!manager) {
+      return new NextResponse("Project manager not found or invalid role", {
         status: 400,
       });
     }
 
-    // Create project with team lead
+    // Create project with project manager
     const project = await prisma.project.create({
       data: {
         name: validatedData.name,
@@ -55,38 +61,32 @@ export async function POST(req: Request) {
         endDate: new Date(validatedData.endDate),
         status: validatedData.status as ProjectStatus,
         priority: validatedData.priority as Priority,
-        teamLeadId: validatedData.teamLeadId,
+        projectManagerId: validatedData.projectManagerId,
       },
       include: {
-        teamLead: {
+        projectManager: {
           select: {
             id: true,
-            name: true,
+            fullName: true,
             email: true,
-            image: true,
-          },
-        },
-        department: {
-          select: {
-            id: true,
-            name: true,
+            avatarUrl: true,
           },
         },
         _count: {
           select: {
             tasks: true,
-            // teamMembers: true, // Removed invalid property
+            projectMembers: true,
           },
         },
       },
     });
 
-    // Add team lead as a team member automatically
+    // Add project manager as a project member automatically
     await prisma.projectMember.create({
       data: {
-        userId: validatedData.teamLeadId,
+        userId: validatedData.projectManagerId,
         projectId: project.id,
-        role: MemberRole.MEMBER, // Default to MEMBER, adjust if needed
+        role: MemberRole.MEMBER,
       },
     });
 
@@ -122,15 +122,18 @@ export async function GET(req: Request) {
       take: limit,
       where: status ? { status: status as ProjectStatus } : undefined,
       include: {
-        department: {
+        projectManager: {
           select: {
             id: true,
-            name: true,
+            fullName: true,
+            email: true,
+            avatarUrl: true,
           },
         },
         _count: {
           select: {
             tasks: true,
+            projectMembers: true,
           },
         },
       },

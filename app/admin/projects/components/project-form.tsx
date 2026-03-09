@@ -1,229 +1,362 @@
+// admin/projects/components/project-form.tsx
 "use client";
 
-import { useState } from "react";
-import { X, Calendar, FileText } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X } from "lucide-react";
 
-interface ProjectFormProps {
-  onSubmit: (data: {
-    name: string;
-    description: string;
-    startDate: string;
-    endDate: string;
-    status: string;
-    priority: string;
-  }) => Promise<void>;
-  onClose: () => void;
-  isLoading: boolean;
+interface User {
+  id: string;
+  name: string | null;
+  fullName?: string | null;
+  email: string;
+  role: string;
 }
 
-export function ProjectForm({
-  onSubmit,
-  onClose,
-  isLoading,
-}: ProjectFormProps) {
+interface Department {
+  id: string;
+  name: string;
+  code: string | null;
+}
+
+interface Team {
+  id: string;
+  name: string;
+  description: string | null;
+  departmentId: string | null;
+  teamLeadId: string | null;
+  department?: {
+    id: string;
+    name: string;
+  } | null;
+  teamLead?: {
+    id: string;
+    fullName: string;
+    email: string;
+  } | null;
+  _count?: {
+    members: number;
+  };
+}
+
+interface ProjectFormProps {
+  onSubmit: (data: any) => Promise<void>;
+  onClose: () => void;
+  isLoading: boolean;
+  initialData?: any | null;
+}
+
+export function ProjectForm({ onSubmit, onClose, isLoading, initialData }: ProjectFormProps) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    startDate: "",
-    endDate: "",
     status: "PLANNING",
     priority: "MEDIUM",
+    startDate: "",
+    endDate: "",
+    budget: "",
+    departmentId: "",
+    teamId: "", // New field for team selection
+    projectManagerId: "",
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [teamLeads, setTeamLeads] = useState<User[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [filteredTeams, setFilteredTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState({
+    teamLeads: false,
+    departments: false,
+    teams: false,
+  });
+  const [fetchError, setFetchError] = useState({
+    teamLeads: "",
+    departments: "",
+    teams: "",
+  });
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = "Project name is required";
+  // Initialize form with initial data if editing
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || "",
+        description: initialData.description || "",
+        status: initialData.status || "PLANNING",
+        priority: initialData.priority || "MEDIUM",
+        startDate: initialData.startDate ? new Date(initialData.startDate).toISOString().split('T')[0] : "",
+        endDate: initialData.endDate ? new Date(initialData.endDate).toISOString().split('T')[0] : "",
+        budget: initialData.budget?.toString() || "",
+        departmentId: initialData.departmentId || "",
+        teamId: initialData.teamId || "",
+        projectManagerId: initialData.projectManagerId || "",
+      });
     }
+  }, [initialData]);
 
-    if (!formData.startDate) {
-      newErrors.startDate = "Start date is required";
-    }
+  // Fetch team leads (users with TEAMLEADER role)
+  useEffect(() => {
+    const fetchTeamLeads = async () => {
+      setLoading(prev => ({ ...prev, teamLeads: true }));
+      setFetchError(prev => ({ ...prev, teamLeads: "" }));
 
-    if (!formData.endDate) {
-      newErrors.endDate = "End date is required";
-    }
+      try {
+        const response = await fetch("/api/admin/users?limit=100");
 
-    if (formData.startDate && formData.endDate) {
-      const start = new Date(formData.startDate);
-      const end = new Date(formData.endDate);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch team leads: ${response.statusText}`);
+        }
 
-      if (end <= start) {
-        newErrors.endDate = "End date must be after start date";
+        const data = await response.json();
+        // Normalize response: API may return an array or an object containing the array
+        const usersArray: any[] = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.users)
+            ? data.users
+            : Array.isArray(data?.data)
+              ? data.data
+              : [];
+
+        // Filter to ensure only users with TEAMLEADER role are included
+        const filteredTeamLeads = usersArray.filter((user: User) => user?.role === "TEAMLEADER");
+        setTeamLeads(filteredTeamLeads);
+      } catch (error) {
+        console.error("Error fetching team leads:", error);
+        setFetchError(prev => ({
+          ...prev,
+          teamLeads: "Failed to load team leads. Please try again."
+        }));
+      } finally {
+        setLoading(prev => ({ ...prev, teamLeads: false }));
       }
-    }
+    };
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+    fetchTeamLeads();
+  }, []);
+
+  // Fetch departments
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      setLoading(prev => ({ ...prev, departments: true }));
+      setFetchError(prev => ({ ...prev, departments: "" }));
+
+      try {
+        const response = await fetch("/api/admin/departments");
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch departments: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        // Normalize response: API may return an array or an object containing the array
+        const departmentsArray: any[] = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.departments)
+            ? data.departments
+            : Array.isArray(data?.data)
+              ? data.data
+              : [];
+
+        setDepartments(departmentsArray);
+      } catch (error) {
+        console.error("Error fetching departments:", error);
+        setFetchError(prev => ({
+          ...prev,
+          departments: "Failed to load departments. Please try again."
+        }));
+      } finally {
+        setLoading(prev => ({ ...prev, departments: false }));
+      }
+    };
+
+    fetchDepartments();
+  }, []);
+
+  // Fetch teams
+  useEffect(() => {
+    const fetchTeams = async () => {
+      setLoading(prev => ({ ...prev, teams: true }));
+      setFetchError(prev => ({ ...prev, teams: "" }));
+
+      try {
+        const response = await fetch("/api/admin/teams?limit=100");
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch teams: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        // Normalize response
+        const teamsArray: any[] = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.teams)
+            ? data.teams
+            : Array.isArray(data?.data)
+              ? data.data
+              : [];
+
+        setTeams(teamsArray);
+        setFilteredTeams(teamsArray);
+      } catch (error) {
+        console.error("Error fetching teams:", error);
+        setFetchError(prev => ({
+          ...prev,
+          teams: "Failed to load teams. Please try again."
+        }));
+      } finally {
+        setLoading(prev => ({ ...prev, teams: false }));
+      }
+    };
+
+    fetchTeams();
+  }, []);
+
+  // Filter teams based on selected department
+  useEffect(() => {
+    if (formData.departmentId) {
+      const filtered = teams.filter(team => team.departmentId === formData.departmentId);
+      setFilteredTeams(filtered);
+      
+      // If current team selection doesn't belong to the selected department, clear it
+      if (formData.teamId) {
+        const selectedTeam = teams.find(t => t.id === formData.teamId);
+        if (selectedTeam && selectedTeam.departmentId !== formData.departmentId) {
+          setFormData(prev => ({ ...prev, teamId: "" }));
+        }
+      }
+    } else {
+      setFilteredTeams(teams);
+    }
+  }, [formData.departmentId, teams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      return;
-    }
+    try {
+      // Format the data for API submission
+      if (!formData.projectManagerId) {
+        alert('Please select a Team Lead (project manager) before creating the project.');
+        return;
+      }
 
-    await onSubmit(formData);
+      if (!formData.startDate || !formData.endDate) {
+        alert('Please provide both start and end dates for the project.');
+        return;
+      }
+
+      const formattedData = {
+        name: formData.name,
+        description: formData.description || "",
+        status: formData.status,
+        priority: formData.priority,
+        startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
+        endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
+        budget: formData.budget ? parseFloat(formData.budget) : null,
+        projectManagerId: formData.projectManagerId || null,
+        departmentId: formData.departmentId || null,
+        teamId: formData.teamId || null, // Include team selection
+      };
+
+      await onSubmit(formattedData);
+    } catch (error) {
+      console.error('Form submission error:', error);
+    }
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
-    // Clear error for this field
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
+  const handleDateChange = (field: 'startDate' | 'endDate', dateString: string) => {
+    if (dateString) {
+      setFormData(prev => ({
+        ...prev,
+        [field]: dateString
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: '' }));
     }
+  };
+
+  // Get display name for user
+  const getUserDisplayName = (user: User): string => {
+    const displayName = user.fullName || user.name || user.email;
+    return displayName;
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              Create New Project
-            </h2>
-            <button
-              onClick={onClose}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-            </button>
-          </div>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            {initialData ? "Edit Project" : "Create New Project"}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <X size={24} />
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Project Name */}
           <div>
-            <label
-              htmlFor="name"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Project Name *
             </label>
             <input
               type="text"
-              id="name"
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border ${
-                errors.name
-                  ? "border-red-500 focus:ring-red-500"
-                  : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-              } rounded-lg focus:outline-none focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white`}
-              placeholder="Enter project name"
+              required
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
             />
-            {errors.name && (
-              <p className="mt-1 text-sm text-red-500">{errors.name}</p>
-            )}
           </div>
 
           {/* Description */}
           <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Description
             </label>
             <textarea
-              id="description"
               name="description"
               value={formData.description}
               onChange={handleChange}
-              rows={4}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-              placeholder="Describe the project goals and objectives..."
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
             />
           </div>
 
-          {/* Date Range */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Status and Priority */}
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label
-                htmlFor="startDate"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
-                Start Date *
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Status
               </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="date"
-                  id="startDate"
-                  name="startDate"
-                  value={formData.startDate}
-                  onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-2 border ${
-                    errors.startDate
-                      ? "border-red-500 focus:ring-red-500"
-                      : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-                  } rounded-lg focus:outline-none focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white`}
-                />
-              </div>
-              {errors.startDate && (
-                <p className="mt-1 text-sm text-red-500">{errors.startDate}</p>
-              )}
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              >
+                <option value="PLANNING">Planning</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="ON_HOLD">On Hold</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
             </div>
 
             <div>
-              <label
-                htmlFor="endDate"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
-                End Date *
-              </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="date"
-                  id="endDate"
-                  name="endDate"
-                  value={formData.endDate}
-                  onChange={handleChange}
-                  min={formData.startDate}
-                  className={`w-full pl-10 pr-4 py-2 border ${
-                    errors.endDate
-                      ? "border-red-500 focus:ring-red-500"
-                      : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-                  } rounded-lg focus:outline-none focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white`}
-                />
-              </div>
-              {errors.endDate && (
-                <p className="mt-1 text-sm text-red-500">{errors.endDate}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Priority and Status */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="priority"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Priority
               </label>
               <select
-                id="priority"
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
               >
                 <option value="LOW">Low</option>
                 <option value="MEDIUM">Medium</option>
@@ -231,30 +364,149 @@ export function ProjectForm({
                 <option value="URGENT">Urgent</option>
               </select>
             </div>
+          </div>
+
+          {/* Dates */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Start Date
+              </label>
+              <input
+                type="date"
+                name="startDate"
+                value={formData.startDate}
+                onChange={(e) => handleDateChange('startDate', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              />
+            </div>
 
             <div>
-              <label
-                htmlFor="status"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
-                Status
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                End Date
               </label>
-              <select
-                id="status"
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-              >
-                <option value="PLANNING">Planning</option>
-                <option value="ACTIVE">Active</option>
-                <option value="ON_HOLD">On Hold</option>
-              </select>
+              <input
+                type="date"
+                name="endDate"
+                value={formData.endDate}
+                onChange={(e) => handleDateChange('endDate', e.target.value)}
+                min={formData.startDate}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              />
             </div>
           </div>
 
+          {/* Budget */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Budget
+            </label>
+            <input
+              type="number"
+              name="budget"
+              value={formData.budget}
+              onChange={handleChange}
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+
+          {/* Department Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Department
+            </label>
+            <select
+              name="departmentId"
+              value={formData.departmentId}
+              onChange={handleChange}
+              disabled={loading.departments}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="">Select a department</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.id}>
+                  {dept.name} {dept.code ? `(${dept.code})` : ''}
+                </option>
+              ))}
+            </select>
+            {loading.departments && (
+              <p className="text-sm text-gray-500 mt-1">Loading departments...</p>
+            )}
+            {fetchError.departments && (
+              <p className="text-sm text-red-500 mt-1">{fetchError.departments}</p>
+            )}
+          </div>
+
+          {/* Team Selection - New Field */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Team
+            </label>
+            <select
+              name="teamId"
+              value={formData.teamId}
+              onChange={handleChange}
+              disabled={loading.teams}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="">Select a team</option>
+              {filteredTeams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name} 
+                  {team.department ? ` (${team.department.name})` : ''}
+                  {team._count?.members ? ` - ${team._count.members} members` : ''}
+                </option>
+              ))}
+            </select>
+            {loading.teams && (
+              <p className="text-sm text-gray-500 mt-1">Loading teams...</p>
+            )}
+            {fetchError.teams && (
+              <p className="text-sm text-red-500 mt-1">{fetchError.teams}</p>
+            )}
+            {filteredTeams.length === 0 && formData.departmentId && (
+              <p className="text-sm text-yellow-500 mt-1">
+                No teams found for this department. Please select another department or create a team first.
+              </p>
+            )}
+          </div>
+
+          {/* Team Lead Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Project Manager (Team Lead) *
+            </label>
+            <select
+              name="projectManagerId"
+              value={formData.projectManagerId}
+              onChange={handleChange}
+              disabled={loading.teamLeads}
+              required
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="">Select a project manager</option>
+              {teamLeads.map((lead) => (
+                <option key={lead.id} value={lead.id}>
+                  {getUserDisplayName(lead)}
+                </option>
+              ))}
+            </select>
+            {loading.teamLeads && (
+              <p className="text-sm text-gray-500 mt-1">Loading team leads...</p>
+            )}
+            {fetchError.teamLeads && (
+              <p className="text-sm text-red-500 mt-1">{fetchError.teamLeads}</p>
+            )}
+            <p className="text-xs text-gray-500 mt-1">
+              Only users with Team Leader role are shown
+            </p>
+          </div>
+
           {/* Form Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={onClose}
@@ -264,20 +516,13 @@ export function ProjectForm({
             </button>
             <button
               type="submit"
-              disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              disabled={isLoading || loading.teamLeads || loading.departments || loading.teams}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <FileText className="w-4 h-4" />
-                  Create Project
-                </>
-              )}
+              {isLoading 
+                ? (initialData ? "Updating..." : "Creating...") 
+                : (initialData ? "Update Project" : "Create Project")
+              }
             </button>
           </div>
         </form>
