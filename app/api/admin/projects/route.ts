@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { ProjectStatus, Priority, MemberRole, Role } from "@prisma/client";
@@ -21,6 +21,8 @@ const projectSchema = z.object({
     ])
     .default("PLANNING"),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
+  teamId: z.string().uuid().optional().nullable(),
+  departmentId: z.string().uuid().optional().nullable(),
 });
 
 export async function POST(req: Request) {
@@ -52,7 +54,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // Create project with project manager
+    // Create project with project manager, team, and department
     const project = await prisma.project.create({
       data: {
         name: validatedData.name,
@@ -62,6 +64,8 @@ export async function POST(req: Request) {
         status: validatedData.status as ProjectStatus,
         priority: validatedData.priority as Priority,
         projectManagerId: validatedData.projectManagerId,
+        teamId: validatedData.teamId,
+        departmentId: validatedData.departmentId,
       },
       include: {
         projectManager: {
@@ -81,14 +85,47 @@ export async function POST(req: Request) {
       },
     });
 
-    // Add project manager as a project member automatically
-    await prisma.projectMember.create({
-      data: {
-        userId: validatedData.projectManagerId,
-        projectId: project.id,
-        role: MemberRole.MEMBER,
-      },
-    });
+    // Fetch users based on department or team
+    const membersToAdd: { userId: string, role: MemberRole }[] = [];
+    
+    // Always add the manager
+    membersToAdd.push({ userId: validatedData.projectManagerId, role: MemberRole.MEMBER });
+
+    if (validatedData.teamId) {
+      const teamMembers = await prisma.teamMember.findMany({
+        where: { teamId: validatedData.teamId },
+        select: { userId: true },
+      });
+      teamMembers.forEach(tm => membersToAdd.push({ userId: tm.userId, role: MemberRole.MEMBER }));
+    }
+
+    if (validatedData.departmentId) {
+      const deptMembers = await prisma.user.findMany({
+        where: { departmentId: validatedData.departmentId },
+        select: { id: true },
+      });
+      deptMembers.forEach(u => membersToAdd.push({ userId: u.id, role: MemberRole.MEMBER }));
+    }
+
+    // Deduplicate array by userId
+    const uniqueMap = new Map();
+    for (const m of membersToAdd) {
+      if (!uniqueMap.has(m.userId)) {
+        uniqueMap.set(m.userId, m);
+      }
+    }
+    const uniqueMembers = Array.from(uniqueMap.values());
+
+    if (uniqueMembers.length > 0) {
+      await prisma.projectMember.createMany({
+        data: uniqueMembers.map(m => ({
+          projectId: project.id,
+          userId: m.userId,
+          role: m.role,
+        })),
+        skipDuplicates: true,
+      });
+    }
 
     return NextResponse.json(project);
   } catch (error) {

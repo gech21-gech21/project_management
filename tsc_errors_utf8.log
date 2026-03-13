@@ -1,0 +1,122 @@
+﻿.next/dev/types/validator.ts(198,31): error TS2344: Type 'typeof import("C:/Users/fikad/Documents/project_management/app/api/admin/teams/[teamId]/members/[memberId]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/admin/teams/[teamId]/members/[memberId]">'.
+  Types of property 'PUT' are incompatible.
+    Type '(request: Request, { params }: { params: { teamId: string; memberId: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ data: { user: { id: string; email: string; fullName: string; username: string; avatarUrl: string | null; }; } & { ...; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ teamId: string; memberId: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ teamId: string; memberId: string; }>; }' is not assignable to type '{ params: { teamId: string; memberId: string; }; }'.
+          Types of property 'params' are incompatible.
+            Type 'Promise<{ teamId: string; memberId: string; }>' is missing the following properties from type '{ teamId: string; memberId: string; }': teamId, memberId
+.next/dev/types/validator.ts(207,31): error TS2344: Type 'typeof import("C:/Users/fikad/Documents/project_management/app/api/admin/teams/[teamId]/members/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/admin/teams/[teamId]/members">'.
+  Types of property 'PUT' are incompatible.
+    Type '(request: NextRequest, { params }: { params: Promise<{ teamId: string; memberId: string; }>; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ data: { user: { ...; }; } & { ...; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ teamId: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ teamId: string; }>; }' is not assignable to type '{ params: Promise<{ teamId: string; memberId: string; }>; }'.
+          Types of property 'params' are incompatible.
+            Type 'Promise<{ teamId: string; }>' is not assignable to type 'Promise<{ teamId: string; memberId: string; }>'.
+              Property 'memberId' is missing in type '{ teamId: string; }' but required in type '{ teamId: string; memberId: string; }'.
+.next/dev/types/validator.ts(279,31): error TS2344: Type 'typeof import("C:/Users/fikad/Documents/project_management/app/api/member/tasks/[taskId]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/member/tasks/[taskId]">'.
+  Types of property 'PUT' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { taskId: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; data: { assignedTo: { id: string; email: string; fullName: string; avatarUrl: string | null; } | null; } & { ...; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ taskId: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ taskId: string; }>; }' is not assignable to type '{ params: { taskId: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'taskId' is missing in type 'Promise<{ taskId: string; }>' but required in type '{ taskId: string; }'.
+.next/dev/types/validator.ts(297,31): error TS2344: Type 'typeof import("C:/Users/fikad/Documents/project_management/app/api/teamleader/tasks/[taskId]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/teamleader/tasks/[taskId]">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { taskId: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; data: { project: { name: string; id: string; code: string | null; projectManager: { ...; } | null; }; taskHistory: { ...; }[]; comments: ({ ...; } & { ...; })[]; assignedTo:...' is not assignable to type '(request: NextRequest, context: { params: Promise<{ taskId: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ taskId: string; }>; }' is not assignable to type '{ params: { taskId: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'taskId' is missing in type 'Promise<{ taskId: string; }>' but required in type '{ taskId: string; }'.
+app/api/auth/sync-user/route.ts(41,9): error TS2322: Type '"MEMBER"' is not assignable to type 'Role | undefined'.
+app/dashboard/page.tsx(35,17): error TS2322: Type '{} | { OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }' is not assignable to type 'ProjectWhereInput | undefined'.
+  Type '{ OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }' is not assignable to type 'ProjectWhereInput'.
+    Types of property 'OR' are incompatible.
+      Type '({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]' is not assignable to type 'ProjectWhereInput[]'.
+        Type '{ projectManagerId: string; } | { members: { some: { userId: string; }; }; }' is not assignable to type 'ProjectWhereInput'.
+          Object literal may only specify known properties, and 'members' does not exist in type 'ProjectWhereInput'.
+app/dashboard/page.tsx(58,23): error TS2322: Type '{} | { OR: ({ assignedToId: string; } | { createdById: string; } | { project: { OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }; })[]; }' is not assignable to type 'TaskWhereInput | undefined'.
+  Type '{ OR: ({ assignedToId: string; } | { createdById: string; } | { project: { OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }; })[]; }' is not assignable to type 'TaskWhereInput'.
+    Types of property 'OR' are incompatible.
+      Type '({ assignedToId: string; } | { createdById: string; } | { project: { OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }; })[]' is not assignable to type 'TaskWhereInput[]'.
+        Type '{ assignedToId: string; } | { createdById: string; } | { project: { OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }; }' is not assignable to type 'TaskWhereInput'.
+          Types of property 'project' are incompatible.
+            Type '{ OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }' is not assignable to type '(Without<ProjectScalarRelationFilter, ProjectWhereInput> & ProjectWhereInput) | (Without<ProjectWhereInput, ProjectScalarRelationFilter> & ProjectScalarRelationFilter) | undefined'.
+              Types of property 'OR' are incompatible.
+                Type '({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]' is not assignable to type 'ProjectWhereInput[]'.
+                  Type '{ projectManagerId: string; } | { members: { some: { userId: string; }; }; }' is not assignable to type 'ProjectWhereInput'.
+                    Object literal may only specify known properties, and 'members' does not exist in type 'ProjectWhereInput'.
+app/dashboard/page.tsx(75,17): error TS2322: Type '{ leadId: string; } | {}' is not assignable to type 'TeamWhereInput | undefined'.
+  Object literal may only specify known properties, and 'leadId' does not exist in type 'TeamWhereInput'.
+app/dashboard/page.tsx(113,23): error TS2322: Type '{} | { OR: ({ assignedToId: string; } | { createdById: string; } | { project: { OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }; })[]; }' is not assignable to type 'TaskWhereInput | undefined'.
+  Type '{ OR: ({ assignedToId: string; } | { createdById: string; } | { project: { OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }; })[]; }' is not assignable to type 'TaskWhereInput'.
+    Types of property 'OR' are incompatible.
+      Type '({ assignedToId: string; } | { createdById: string; } | { project: { OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }; })[]' is not assignable to type 'TaskWhereInput[]'.
+        Type '{ assignedToId: string; } | { createdById: string; } | { project: { OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }; }' is not assignable to type 'TaskWhereInput'.
+          Types of property 'project' are incompatible.
+            Type '{ OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }' is not assignable to type '(Without<ProjectScalarRelationFilter, ProjectWhereInput> & ProjectWhereInput) | (Without<ProjectWhereInput, ProjectScalarRelationFilter> & ProjectScalarRelationFilter) | undefined'.
+              Types of property 'OR' are incompatible.
+                Type '({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]' is not assignable to type 'ProjectWhereInput[]'.
+                  Type '{ projectManagerId: string; } | { members: { some: { userId: string; }; }; }' is not assignable to type 'ProjectWhereInput'.
+                    Object literal may only specify known properties, and 'members' does not exist in type 'ProjectWhereInput'.
+app/dashboard/page.tsx(142,21): error TS2322: Type '{} | { OR: ({ assignedToId: string; } | { createdById: string; } | { project: { OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }; })[]; }' is not assignable to type 'TaskWhereInput | undefined'.
+  Type '{ OR: ({ assignedToId: string; } | { createdById: string; } | { project: { OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }; })[]; }' is not assignable to type 'TaskWhereInput'.
+    Types of property 'OR' are incompatible.
+      Type '({ assignedToId: string; } | { createdById: string; } | { project: { OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }; })[]' is not assignable to type 'TaskWhereInput[]'.
+        Type '{ assignedToId: string; } | { createdById: string; } | { project: { OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }; }' is not assignable to type 'TaskWhereInput'.
+          Types of property 'project' are incompatible.
+            Type '{ OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }' is not assignable to type '(Without<ProjectScalarRelationFilter, ProjectWhereInput> & ProjectWhereInput) | (Without<ProjectWhereInput, ProjectScalarRelationFilter> & ProjectScalarRelationFilter) | undefined'.
+              Types of property 'OR' are incompatible.
+                Type '({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]' is not assignable to type 'ProjectWhereInput[]'.
+                  Type '{ projectManagerId: string; } | { members: { some: { userId: string; }; }; }' is not assignable to type 'ProjectWhereInput'.
+                    Object literal may only specify known properties, and 'members' does not exist in type 'ProjectWhereInput'.
+app/dashboard/page.tsx(177,19): error TS2322: Type '{ OR?: ({ assignedToId: string; } | { createdById: string; } | { project: { OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }; })[] | undefined; dueDate: { lte: Date; gte: Date; }; status: { ...; }; }' is not assignable to type 'TaskWhereInput'.
+  Types of property 'OR' are incompatible.
+    Type '({ assignedToId: string; } | { createdById: string; } | { project: { OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }; })[] | undefined' is not assignable to type 'TaskWhereInput[] | undefined'.
+      Type '({ assignedToId: string; } | { createdById: string; } | { project: { OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }; })[]' is not assignable to type 'TaskWhereInput[]'.
+        Type '{ assignedToId: string; } | { createdById: string; } | { project: { OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }; }' is not assignable to type 'TaskWhereInput'.
+          Types of property 'project' are incompatible.
+            Type '{ OR: ({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]; }' is not assignable to type '(Without<ProjectScalarRelationFilter, ProjectWhereInput> & ProjectWhereInput) | (Without<ProjectWhereInput, ProjectScalarRelationFilter> & ProjectScalarRelationFilter) | undefined'.
+              Types of property 'OR' are incompatible.
+                Type '({ projectManagerId: string; } | { members: { some: { userId: string; }; }; })[]' is not assignable to type 'ProjectWhereInput[]'.
+                  Type '{ projectManagerId: string; } | { members: { some: { userId: string; }; }; }' is not assignable to type 'ProjectWhereInput'.
+                    Object literal may only specify known properties, and 'members' does not exist in type 'ProjectWhereInput'.
+app/dashboard/page.tsx(301,17): error TS2322: Type 'number | true | { id?: number | undefined; title?: number | undefined; description?: number | undefined; taskCode?: number | undefined; projectId?: number | undefined; status?: number | undefined; ... 13 more ...; _all?: number | undefined; }' is not assignable to type 'ReactNode'.
+  Type '{ id?: number | undefined; title?: number | undefined; description?: number | undefined; taskCode?: number | undefined; projectId?: number | undefined; status?: number | undefined; ... 13 more ...; _all?: number | undefined; }' is not assignable to type 'ReactNode'.
+    Type '{ id?: number | undefined; title?: number | undefined; description?: number | undefined; taskCode?: number | undefined; projectId?: number | undefined; status?: number | undefined; ... 13 more ...; _all?: number | undefined; }' is missing the following properties from type 'ReactPortal': children, props, key
+app/dashboard/page.tsx(323,19): error TS2322: Type 'number | true | { id?: number | undefined; title?: number | undefined; description?: number | undefined; taskCode?: number | undefined; projectId?: number | undefined; status?: number | undefined; ... 13 more ...; _all?: number | undefined; }' is not assignable to type 'ReactNode'.
+  Type '{ id?: number | undefined; title?: number | undefined; description?: number | undefined; taskCode?: number | undefined; projectId?: number | undefined; status?: number | undefined; ... 13 more ...; _all?: number | undefined; }' is not assignable to type 'ReactNode'.
+    Type '{ id?: number | undefined; title?: number | undefined; description?: number | undefined; taskCode?: number | undefined; projectId?: number | undefined; status?: number | undefined; ... 13 more ...; _all?: number | undefined; }' is missing the following properties from type 'ReactPortal': children, props, key
+app/dashboard/page.tsx(330,40): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+app/dashboard/page.tsx(339,19): error TS2322: Type 'number | true | { id?: number | undefined; title?: number | undefined; description?: number | undefined; taskCode?: number | undefined; projectId?: number | undefined; status?: number | undefined; ... 13 more ...; _all?: number | undefined; }' is not assignable to type 'ReactNode'.
+  Type '{ id?: number | undefined; title?: number | undefined; description?: number | undefined; taskCode?: number | undefined; projectId?: number | undefined; status?: number | undefined; ... 13 more ...; _all?: number | undefined; }' is not assignable to type 'ReactNode'.
+    Type '{ id?: number | undefined; title?: number | undefined; description?: number | undefined; taskCode?: number | undefined; projectId?: number | undefined; status?: number | undefined; ... 13 more ...; _all?: number | undefined; }' is missing the following properties from type 'ReactPortal': children, props, key
+app/dashboard/page.tsx(346,40): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+app/dashboard/page.tsx(355,19): error TS2322: Type 'number | true | { id?: number | undefined; title?: number | undefined; description?: number | undefined; taskCode?: number | undefined; projectId?: number | undefined; status?: number | undefined; ... 13 more ...; _all?: number | undefined; }' is not assignable to type 'ReactNode'.
+  Type '{ id?: number | undefined; title?: number | undefined; description?: number | undefined; taskCode?: number | undefined; projectId?: number | undefined; status?: number | undefined; ... 13 more ...; _all?: number | undefined; }' is not assignable to type 'ReactNode'.
+    Type '{ id?: number | undefined; title?: number | undefined; description?: number | undefined; taskCode?: number | undefined; projectId?: number | undefined; status?: number | undefined; ... 13 more ...; _all?: number | undefined; }' is missing the following properties from type 'ReactPortal': children, props, key
+app/dashboard/page.tsx(362,40): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+app/dashboard/page.tsx(371,19): error TS2322: Type 'number | true | { id?: number | undefined; title?: number | undefined; description?: number | undefined; taskCode?: number | undefined; projectId?: number | undefined; status?: number | undefined; ... 13 more ...; _all?: number | undefined; }' is not assignable to type 'ReactNode'.
+  Type '{ id?: number | undefined; title?: number | undefined; description?: number | undefined; taskCode?: number | undefined; projectId?: number | undefined; status?: number | undefined; ... 13 more ...; _all?: number | undefined; }' is not assignable to type 'ReactNode'.
+    Type '{ id?: number | undefined; title?: number | undefined; description?: number | undefined; taskCode?: number | undefined; projectId?: number | undefined; status?: number | undefined; ... 13 more ...; _all?: number | undefined; }' is missing the following properties from type 'ReactPortal': children, props, key
+app/dashboard/page.tsx(378,40): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+app/dashboard/page.tsx(408,31): error TS2551: Property 'project' does not exist on type '{ id: string; status: TaskStatus; createdAt: Date; updatedAt: Date; description: string | null; priority: Priority; startDate: Date | null; createdById: string | null; ... 10 more ...; position: number | null; }'. Did you mean 'projectId'?
+app/dashboard/page.tsx(412,33): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'Date | null' is not assignable to parameter of type 'string | number | Date'.
+      Type 'null' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'Date | null' is not assignable to parameter of type 'string | number'.
+      Type 'null' is not assignable to type 'string | number'.
+app/dashboard/page.tsx(450,33): error TS2551: Property 'assignedTo' does not exist on type '{ id: string; status: TaskStatus; createdAt: Date; updatedAt: Date; description: string | null; priority: Priority; startDate: Date | null; createdById: string | null; ... 10 more ...; position: number | null; }'. Did you mean 'assignedToId'?
+app/teamleaders/components/teamleader-dashboard-client.tsx(21,31): error TS2307: Cannot find module './messages-modal' or its corresponding type declarations.
+app/teamleaders/components/teamleader-dashboard-client.tsx(498,11): error TS2741: Property 'estimatedHours' is missing in type 'Task' but required in type 'Task'.
+app/teamleaders/page.tsx(116,7): error TS2322: Type '({ _count: { projectMembers: number; tasks: number; }; projectMembers: ({ user: { id: string; email: string; fullName: string; avatarUrl: string | null; role: Role; }; } & { id: string; role: MemberRole; projectId: string; userId: string; joinedAt: Date; leftAt: Date | null; })[]; tasks: ({ ...; } & { ...; })[]; } &...' is not assignable to type 'Project[]'.
+  Type '{ _count: { projectMembers: number; tasks: number; }; projectMembers: ({ user: { id: string; email: string; fullName: string; avatarUrl: string | null; role: Role; }; } & { id: string; role: MemberRole; projectId: string; userId: string; joinedAt: Date; leftAt: Date | null; })[]; tasks: ({ ...; } & { ...; })[]; } & ...' is not assignable to type 'Project'.
+    Types of property 'tasks' are incompatible.
+      Type '({ comments: ({ user: { id: string; email: string; fullName: string; avatarUrl: string | null; }; } & { id: string; createdAt: Date; updatedAt: Date; userId: string; taskId: string; content: string; parentCommentId: string | null; attachments: JsonValue; })[]; assignedTo: { ...; } | null; } & { ...; })[]' is not assignable to type 'Task[]'.
+        Type '{ comments: ({ user: { id: string; email: string; fullName: string; avatarUrl: string | null; }; } & { id: string; createdAt: Date; updatedAt: Date; userId: string; taskId: string; content: string; parentCommentId: string | null; attachments: JsonValue; })[]; assignedTo: { ...; } | null; } & { ...; }' is not assignable to type 'Task'.
+          Types of property 'comments' are incompatible.
+            Type '({ user: { id: string; email: string; fullName: string; avatarUrl: string | null; }; } & { id: string; createdAt: Date; updatedAt: Date; userId: string; taskId: string; content: string; parentCommentId: string | null; attachments: JsonValue; })[]' is not assignable to type 'Comment[]'.
+              Type '{ user: { id: string; email: string; fullName: string; avatarUrl: string | null; }; } & { id: string; createdAt: Date; updatedAt: Date; userId: string; taskId: string; content: string; parentCommentId: string | null; attachments: JsonValue; }' is not assignable to type 'Comment'.
+                Types of property 'user' are incompatible.
+                  Property 'role' is missing in type '{ id: string; email: string; fullName: string; avatarUrl: string | null; }' but required in type 'User'.

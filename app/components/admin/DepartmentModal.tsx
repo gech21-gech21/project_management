@@ -9,7 +9,7 @@ interface DepartmentModalProps {
     name: string;
     code: string | null;
     description: string | null;
-    headId?: string | null;
+    managerId?: string | null; // Changed from headId to managerId to match schema
   } | null;
   onClose: () => void;
   onSuccess: () => void;
@@ -27,6 +27,7 @@ interface Team {
   name: string;
   description: string | null;
   teamLeadId: string | null;
+  departmentId: string;
   teamLead?: {
     id: string;
     fullName: string;
@@ -42,7 +43,7 @@ export default function DepartmentModal({ department, onClose, onSuccess }: Depa
     name: "",
     code: "",
     description: "",
-    headId: "",
+    managerId: "", // Changed from headId to managerId
   });
 
   // Team management state
@@ -64,29 +65,43 @@ export default function DepartmentModal({ department, onClose, onSuccess }: Depa
   const [activeTab, setActiveTab] = useState<"details" | "teams">("details");
 
   useEffect(() => {
+    fetchUsers();
+    
     if (department) {
       setFormData({
         name: department.name || "",
         code: department.code || "",
         description: department.description || "",
-        headId: department.headId || "",
+        managerId: department.managerId || "", // Changed from headId to managerId
       });
       // Fetch teams for this department
-      fetchDepartmentTeams(department.id);
+      if (department.id) {
+        fetchDepartmentTeams(department.id);
+      }
     }
-
-    fetchUsers();
   }, [department]);
 
   const fetchDepartmentTeams = async (departmentId: string) => {
     try {
+      console.log("Fetching teams for department:", departmentId);
       const response = await fetch(`/api/admin/departments/${departmentId}/teams`);
-      if (response.ok) {
-        const data = await response.json();
-        setTeams(data.data || []);
+      
+      if (!response.ok) {
+        // If endpoint doesn't exist, handle gracefully
+        if (response.status === 404) {
+          console.log("Teams endpoint not found - teams feature may not be implemented yet");
+          setTeams([]);
+          return;
+        }
+        throw new Error("Failed to fetch teams");
       }
+      
+      const data = await response.json();
+      setTeams(data.data || []);
     } catch (error) {
       console.error("Failed to fetch department teams:", error);
+      // Don't show error to user, just set empty teams
+      setTeams([]);
     }
   };
 
@@ -117,6 +132,9 @@ export default function DepartmentModal({ department, onClose, onSuccess }: Depa
       
       const method = department ? "PUT" : "POST";
 
+      // Log the data being sent
+      console.log("Submitting department data:", formData);
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -125,13 +143,16 @@ export default function DepartmentModal({ department, onClose, onSuccess }: Depa
         body: JSON.stringify(formData),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || "Failed to save department");
       }
 
+      console.log("Department saved successfully:", data);
       onSuccess();
     } catch (err) {
+      console.error("Error saving department:", err);
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
@@ -146,6 +167,13 @@ export default function DepartmentModal({ department, onClose, onSuccess }: Depa
     setTeamError(null);
 
     try {
+      // First check if teams API exists
+      const testResponse = await fetch("/api/admin/teams", { method: "HEAD" });
+      if (testResponse.status === 404) {
+        setTeamError("Teams management is not available. Please contact administrator.");
+        return;
+      }
+
       const url = editingTeam
         ? `/api/admin/teams/${editingTeam.id}`
         : "/api/admin/teams";
@@ -163,8 +191,9 @@ export default function DepartmentModal({ department, onClose, onSuccess }: Depa
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || "Failed to save team");
       }
 
@@ -174,6 +203,7 @@ export default function DepartmentModal({ department, onClose, onSuccess }: Depa
       setShowTeamForm(false);
       fetchDepartmentTeams(department.id);
     } catch (err) {
+      console.error("Error saving team:", err);
       setTeamError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setTeamLoading(false);
@@ -325,13 +355,13 @@ export default function DepartmentModal({ department, onClose, onSuccess }: Depa
               </div>
 
               <div>
-                <label htmlFor="headId" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="managerId" className="block text-sm font-medium text-gray-700 mb-1">
                   Department Head
                 </label>
                 <select
-                  id="headId"
-                  name="headId"
-                  value={formData.headId}
+                  id="managerId"
+                  name="managerId"
+                  value={formData.managerId}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   disabled={fetchingUsers}
@@ -481,7 +511,7 @@ export default function DepartmentModal({ department, onClose, onSuccess }: Depa
                       className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
                     >
                       <div className="flex justify-between items-start">
-                        <div>
+                        <div className="flex-1">
                           <h5 className="font-medium text-gray-900">{team.name}</h5>
                           {team.description && (
                             <p className="text-sm text-gray-600 mt-1">{team.description}</p>
@@ -497,10 +527,11 @@ export default function DepartmentModal({ department, onClose, onSuccess }: Depa
                             </p>
                           )}
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 ml-4">
                           <button
                             onClick={() => handleEditTeam(team)}
                             className="text-blue-600 hover:text-blue-800"
+                            title="Edit team"
                           >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -509,6 +540,7 @@ export default function DepartmentModal({ department, onClose, onSuccess }: Depa
                           <button
                             onClick={() => handleDeleteTeam(team.id)}
                             className="text-red-600 hover:text-red-800"
+                            title="Delete team"
                           >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -524,6 +556,9 @@ export default function DepartmentModal({ department, onClose, onSuccess }: Depa
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                     <p className="text-gray-500">No teams created for this department yet.</p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Click "Add New Team" to create your first team.
+                    </p>
                   </div>
                 )}
               </div>

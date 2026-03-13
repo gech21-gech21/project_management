@@ -114,6 +114,12 @@ model Project {
   actualCost  Float?
   progress    Int           @default(0)
 
+  teamId      String?
+  team        Team?         @relation("TeamProjects", fields: [teamId], references: [id])
+
+  departmentId String?
+  department   Department?  @relation("ProjectDepartments", fields: [departmentId], references: [id])
+
   projectManagerId String?
   projectManager   User?   @relation("ProjectManager", fields: [projectManagerId], references: [id])
 
@@ -271,6 +277,7 @@ model Department {
 
   users User[] @relation("UserDepartment")
   teams Team[]
+  projects Project[] @relation("ProjectDepartments")
 
   createdAt DateTime @default(now())
 
@@ -346,7 +353,8 @@ model Team {
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id])
 
-  members TeamMember[]
+  members  TeamMember[]
+  projects Project[] @relation("TeamProjects")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

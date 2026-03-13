@@ -33,12 +33,13 @@ export async function POST(request: NextRequest) {
     const newUser = await prisma.user.create({
       data: {
         email: session.user.email,
+        username: session.user.email.split("@")[0],
         fullName: session.user.name || "",
         avatarUrl: session.user.image || null,
-        // Prisma requires `passwordHash` (schema mandates it). OAuth users don't have a password,
+        // Prisma requires `password` (schema mandates it). OAuth users don't have a password,
         // so store an empty string to satisfy the type and schema.
-        passwordHash: "",
-        role: "MEMBER",
+        password: "",
+        role: "USER",
       },
     });
 

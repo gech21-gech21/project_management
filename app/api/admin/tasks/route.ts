@@ -36,3 +36,47 @@ export async function GET(request: Request) {
     );
   }
 }
+
+export async function POST(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const json = await request.json();
+    const {
+      title,
+      description,
+      taskCode,
+      status,
+      priority,
+      dueDate,
+      projectId,
+      assignedToId,
+    } = json;
+
+    const task = await prisma.task.create({
+      data: {
+        title,
+        description,
+        taskCode,
+        status,
+        priority,
+        dueDate,
+        projectId,
+        assignedToId,
+        createdById: session.user.id,
+      },
+    });
+
+    return NextResponse.json({ data: task }, { status: 201 });
+  } catch (error) {
+    console.error("Error creating task:", error);
+    return NextResponse.json(
+      { error: "Failed to create task" },
+      { status: 500 }
+    );
+  }
+}

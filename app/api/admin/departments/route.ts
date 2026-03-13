@@ -83,7 +83,16 @@ export async function POST(request: NextRequest) {
         name,
         code,
         description,
-
+        managerId: headId || null,
+      },
+      include: {
+        manager: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
       },
     });
 

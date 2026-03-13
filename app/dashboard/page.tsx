@@ -22,196 +22,117 @@ export default async function DashboardPage() {
     redirect("/auth");
   }
 
+  const baseWhere = session.user.role === "ADMIN" ? {} : {
+    OR: [
+      { assignedToId: session.user.id },
+      { createdById: session.user.id },
+      {
+        project: {
+          OR: [
+            { projectManagerId: session.user.id },
+            {
+              projectMembers: {
+                some: {
+                  userId: session.user.id,
+                },
+              },
+            },
+          ],
+        },
+      },
+    ],
+  };
+
+  const projectWhere = session.user.role === "ADMIN" ? {} : {
+    OR: [
+      { projectManagerId: session.user.id },
+      {
+        projectMembers: {
+          some: {
+            userId: session.user.id,
+          },
+        },
+      },
+    ],
+  };
+
   // Fetch dashboard data based on user role
   const [projects, tasks, teams, recentActivities] = await Promise.all([
     // Projects stats
-    prisma.project.count({
-      where: session.user.role === "ADMIN" 
-        ? {} 
-        : {
-            OR: [
-              { projectManagerId: session.user.id },
-              {
-                members: {
-                  some: {
-                    userId: session.user.id,
-                  },
-                },
-              },
-            ],
-          },
-    }),
+    prisma.project.count({ where: projectWhere }),
     
     // Tasks stats
-    prisma.task.count({
-      where: session.user.role === "ADMIN"
-        ? {}
-        : {
-            OR: [
-              { assignedToId: session.user.id },
-              { createdById: session.user.id },
-              {
-                project: {
-                  OR: [
-                    { projectManagerId: session.user.id },
-                    {
-                      members: {
-                        some: {
-                          userId: session.user.id,
-                        },
-                      },
-                    },
-                  ],
-                },
-              },
-            ],
-          },
-    }),
+    prisma.task.count({ where: baseWhere }),
     
     // Teams count (only for admin and team leads)
-    session.user.role !== "TEAM_MEMBER"
+    session.user.role !== "USER"
       ? prisma.team.count({
-          where: session.user.role === "TEAM_LEAD"
-            ? { leadId: session.user.id }
+          where: session.user.role === "TEAMLEADER"
+            ? { teamLeadId: session.user.id }
             : {},
         })
       : Promise.resolve(0),
     
-    // Recent activities (simplified - you can expand this)
+    // Recent activities
     prisma.task.findMany({
       take: 5,
-      orderBy: {
-        updatedAt: "desc",
-      },
+      orderBy: { updatedAt: "desc" },
       include: {
         assignedTo: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            avatarUrl: true,
-          },
+          select: { id: true, fullName: true, email: true, avatarUrl: true },
         },
         project: {
-          select: {
-            id: true,
-            name: true,
-          },
+          select: { id: true, name: true },
         },
       },
-      where: session.user.role === "ADMIN"
-        ? {}
-        : {
-            OR: [
-              { assignedToId: session.user.id },
-              { createdById: session.user.id },
-              {
-                project: {
-                  OR: [
-                    { projectManagerId: session.user.id },
-                    {
-                      members: {
-                        some: {
-                          userId: session.user.id,
-                        },
-                      },
-                    },
-                  ],
-                },
-              },
-            ],
-          },
+      where: baseWhere,
     }),
   ]);
 
   // Get tasks by status
   const tasksByStatus = await prisma.task.groupBy({
     by: ["status"],
-    _count: true,
-    where: session.user.role === "ADMIN"
-      ? {}
-      : {
-          OR: [
-            { assignedToId: session.user.id },
-            { createdById: session.user.id },
-            {
-              project: {
-                OR: [
-                  { projectManagerId: session.user.id },
-                  {
-                    members: {
-                      some: {
-                        userId: session.user.id,
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        },
+    _count: { _all: true },
+    where: baseWhere,
   });
 
   // Get upcoming deadlines (tasks due in the next 7 days)
   const nextWeek = new Date();
   nextWeek.setDate(nextWeek.getDate() + 7);
 
-  const upcomingDeadlines = await prisma.task.findMany({
-    where: {
-      dueDate: {
-        lte: nextWeek,
-        gte: new Date(),
-      },
-      status: {
-        not: "COMPLETED",
-      },
-      ...(session.user.role !== "ADMIN" && {
-        OR: [
-          { assignedToId: session.user.id },
-          { createdById: session.user.id },
-          {
-            project: {
-              OR: [
-                { projectManagerId: session.user.id },
-                {
-                  members: {
-                    some: {
-                      userId: session.user.id,
-                    },
-                  },
-                },
-              ],
-            },
-          },
-        ],
-      }),
+  const upcomingDeadlinesWhere: import("@prisma/client").Prisma.TaskWhereInput = {
+    dueDate: {
+      lte: nextWeek,
+      gte: new Date(),
     },
+    status: {
+      not: "COMPLETED",
+    },
+  };
+
+  if (session.user.role !== "ADMIN") {
+    upcomingDeadlinesWhere.OR = baseWhere.OR;
+  }
+
+  const upcomingDeadlines = await prisma.task.findMany({
+    where: upcomingDeadlinesWhere,
     take: 5,
     include: {
       assignedTo: {
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-        },
+        select: { id: true, fullName: true, email: true },
       },
       project: {
-        select: {
-          id: true,
-          name: true,
-        },
+        select: { id: true, name: true },
       },
     },
-    orderBy: {
-      dueDate: "asc",
-    },
+    orderBy: { dueDate: "asc" },
   });
 
   const statusCounts = {
-    TODO: tasksByStatus.find((s) => s.status === "TODO")?._count || 0,
-    IN_PROGRESS: tasksByStatus.find((s) => s.status === "IN_PROGRESS")?._count || 0,
-    REVIEW: tasksByStatus.find((s) => s.status === "REVIEW")?._count || 0,
-    COMPLETED: tasksByStatus.find((s) => s.status === "COMPLETED")?._count || 0,
+    TODO: tasksByStatus.find((s) => s.status === "TODO")?._count?._all || 0,
+    IN_PROGRESS: tasksByStatus.find((s) => s.status === "IN_PROGRESS")?._count?._all || 0,
+    REVIEW: tasksByStatus.find((s) => s.status === "REVIEW")?._count?._all || 0,
+    COMPLETED: tasksByStatus.find((s) => s.status === "COMPLETED")?._count?._all || 0,
   };
 
   const statCards = [
@@ -409,7 +330,7 @@ export default async function DashboardPage() {
                       </p>
                     </div>
                     <span className="text-xs font-medium text-red-600 dark:text-red-400">
-                      {new Date(task.dueDate).toLocaleDateString()}
+                      {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : ''}
                     </span>
                   </div>
                 </Link>

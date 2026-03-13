@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 
 export async function PUT(
   request: Request,
-  { params }: { params: { teamId: string; memberId: string } }
+  { params }: { params: Promise<{ teamId: string; memberId: string }> }
 ) {
   try {
+    const { memberId, teamId } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user || session.user.role !== "ADMIN") {
@@ -18,7 +19,7 @@ export async function PUT(
     const { role } = body;
 
     const member = await prisma.teamMember.findUnique({
-      where: { id: params.memberId },
+      where: { id: memberId },
     });
 
     if (!member) {
@@ -30,7 +31,7 @@ export async function PUT(
 
     // Update member role
     const updatedMember = await prisma.teamMember.update({
-      where: { id: params.memberId },
+      where: { id: memberId },
       data: { role },
       include: {
         user: {
@@ -48,7 +49,7 @@ export async function PUT(
     // If role is LEADER, update team's teamLeadId
     if (role === "LEADER") {
       await prisma.team.update({
-        where: { id: params.teamId },
+        where: { id: teamId },
         data: { teamLeadId: member.userId },
       });
     }
@@ -65,9 +66,10 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { teamId: string; memberId: string } }
+  { params }: { params: Promise<{ teamId: string; memberId: string }> }
 ) {
   try {
+    const { memberId, teamId } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user || session.user.role !== "ADMIN") {
@@ -75,7 +77,7 @@ export async function DELETE(
     }
 
     const member = await prisma.teamMember.findUnique({
-      where: { id: params.memberId },
+      where: { id: memberId },
     });
 
     if (!member) {
@@ -88,14 +90,14 @@ export async function DELETE(
     // If this member was the team lead, remove teamLeadId from team
     if (member.role === "LEADER") {
       await prisma.team.update({
-        where: { id: params.teamId },
+        where: { id: teamId },
         data: { teamLeadId: null },
       });
     }
 
     // Remove member from team
     await prisma.teamMember.delete({
-      where: { id: params.memberId },
+      where: { id: memberId },
     });
 
     return NextResponse.json({ success: true });

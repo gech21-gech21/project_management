@@ -121,32 +121,32 @@ export default function Navigation() {
       return [
         {
           name: "Dashboard",
-          href: "/teamleaders",
+          href: "/teamleader",
           icon: LayoutDashboard,
         },
         {
           name: "My Projects",
-          href: "/teamleaders/projects",
+          href: "/teamleader/projects",
           icon: FolderKanban,
         },
         {
           name: "Tasks",
-          href: "/teamleaders/tasks",
+          href: "/teamleader/tasks",
           icon: CheckSquare,
         },
         {
           name: "My Team",
-          href: "/teamleaders/team",
+          href: "/teamleader/team",
           icon: Users,
         },
         {
           name: "Progress",
-          href: "/teamleaders/progress",
+          href: "/teamleader/progress",
           icon: BarChart3,
         },
         {
           name: "Messages",
-          href: "/teamleaders/messages",
+          href: "/teamleader/messages",
           icon: MessageSquare,
         },
       ];

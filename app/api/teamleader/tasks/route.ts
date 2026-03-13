@@ -1,70 +1,93 @@
+// app/api/teamleader/tasks/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (session.user.role !== "TEAMLEADER") {
+    if (!["ADMIN", "TEAMLEADER"].includes(session.user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await req.json();
-    const {
-      title,
-      description,
-      taskCode,
-      status,
-      priority,
-      type,
-      dueDate,
-      estimatedHours,
-      projectId,
-      assignedToId,
-    } = body;
+    const body = await request.json();
+    let { title, description, status, priority, dueDate, assignedToId, projectId, type, estimatedHours } = body;
 
-    // Validate required fields
+    // Fallback mapping for PENDING status
+    if (status === "PENDING") status = "TODO";
+
     if (!title || !projectId) {
       return NextResponse.json(
-        { error: "Title and projectId are required" },
+        { error: "Title and project ID are required" },
         { status: 400 }
       );
     }
 
-    // Verify that the project belongs to this team leader
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        projectManagerId: session.user.id,
-      },
+    // Verify project exists and team leader has access
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      include: { team: true },
     });
 
     if (!project) {
       return NextResponse.json(
-        { error: "Project not found or not assigned to you" },
+        { error: "Project not found" },
         { status: 404 }
       );
     }
 
-    // Create task
+    // If user is team leader, verify they lead the team assigned to this project
+    // OR they are the project manager of this project
+    if (session.user.role === "TEAMLEADER") {
+      const isProjectManager = project.projectManagerId === session.user.id;
+      
+      const team = await prisma.team.findFirst({
+        where: { teamLeadId: session.user.id },
+      });
+      
+      const isTeamLeadOfProject = team && project.teamId === team.id;
+
+      if (!isProjectManager && !isTeamLeadOfProject) {
+        return NextResponse.json(
+          { error: "You don't have permission to create tasks for this project" },
+          { status: 403 }
+        );
+      }
+    }
+
+    // If assignedToId is provided, verify the user is a member of the team
+    if (assignedToId && project.team) {
+      const teamMember = await prisma.teamMember.findFirst({
+        where: {
+          userId: assignedToId,
+          teamId: project.team.id,
+        },
+      });
+      if (!teamMember) {
+        return NextResponse.json(
+          { error: "Assigned user is not a member of the project team" },
+          { status: 400 }
+        );
+      }
+    }
+
     const task = await prisma.task.create({
       data: {
         title,
-        description: description || null,
-        taskCode: taskCode || `TSK-${Date.now().toString().slice(-6)}`,
+        description,
         status: status || "TODO",
         priority: priority || "MEDIUM",
         type: type || "TASK",
-        dueDate: dueDate ? new Date(dueDate) : null,
         estimatedHours: estimatedHours ? parseFloat(estimatedHours) : null,
-        projectId,
+        dueDate: dueDate ? new Date(dueDate) : null,
         assignedToId: assignedToId || null,
+        projectId,
         createdById: session.user.id,
       },
       include: {
@@ -73,126 +96,22 @@ export async function POST(req: NextRequest) {
             id: true,
             fullName: true,
             email: true,
-            avatarUrl: true,
           },
         },
-        project: {
+        createdBy: {
           select: {
             id: true,
-            name: true,
-            code: true,
+            fullName: true,
           },
         },
       },
     });
 
-    // Create task history
-    await prisma.taskHistory.create({
-      data: {
-        taskId: task.id,
-        fieldChanged: "CREATED",
-        oldValue: null,
-        newValue: "Task created",
-        changeType: "CREATE",
-        changedById: session.user.id,
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: task,
-    });
+    return NextResponse.json({ data: task }, { status: 201 });
   } catch (error) {
     console.error("Error creating task:", error);
     return NextResponse.json(
       { error: "Failed to create task" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if (session.user.role !== "TEAMLEADER") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const { searchParams } = new URL(req.url);
-    const projectId = searchParams.get("projectId");
-    const status = searchParams.get("status");
-
-    const where: any = {
-      project: {
-        projectManagerId: session.user.id,
-      },
-    };
-
-    if (projectId) {
-      where.projectId = projectId;
-    }
-
-    if (status) {
-      where.status = status;
-    }
-
-    const tasks = await prisma.task.findMany({
-      where,
-      include: {
-        assignedTo: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            avatarUrl: true,
-          },
-        },
-        project: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-          },
-        },
-        comments: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                fullName: true,
-                email: true,
-                avatarUrl: true,
-              },
-            },
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-        },
-        _count: {
-          select: {
-            comments: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: tasks,
-    });
-  } catch (error) {
-    console.error("Error fetching tasks:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch tasks" },
       { status: 500 }
     );
   }

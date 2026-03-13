@@ -1,7 +1,7 @@
 //admin/projects/page.tsx
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ProjectsClient } from "./components/projects-client";
 
@@ -28,13 +28,12 @@ export default async function AdminProjectsPage() {
             avatarUrl: true,
           },
         },
-        // Remove department if it doesn't exist in your schema
-        // department: {
-        //   select: {
-        //     id: true,
-        //     name: true,
-        //   },
-        // },
+        department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         _count: {
           select: {
             tasks: true,
@@ -75,14 +74,16 @@ export default async function AdminProjectsPage() {
     budget: p.budget ?? null,
     actualCost: p.actualCost ?? null,
     progress: p.progress ?? 0,
+    teamId: p.teamId ?? null,
     projectManagerId: p.projectManagerId ?? null,
     createdById: p.createdById ?? null,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
     _count: {
       tasks: p._count.tasks,
-      projectMembers: p._count.projectMembers ?? 0,
+      projectMembers: p._count.projectMembers,
     },
+    department: p.department,
   }));
 
   return <ProjectsClient initialProjects={projectsForClient} />;
