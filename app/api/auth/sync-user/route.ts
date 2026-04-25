@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
         // Prisma requires `password` (schema mandates it). OAuth users don't have a password,
         // so store an empty string to satisfy the type and schema.
         password: "",
-        role: "USER",
+        role: "TEAM_MEMBER",
       },
     });
 

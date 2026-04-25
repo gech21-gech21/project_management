@@ -11,7 +11,7 @@ export default async function MemberTeamPage() {
     redirect("/auth");
   }
 
-  if (session.user.role !== "MEMBER" && session.user.role !== "USER") {
+  if (session.user.role !== "TEAM_MEMBER") {
     redirect("/dashboard");
   }
 
@@ -54,7 +54,7 @@ export default async function MemberTeamPage() {
         <div className="text-center max-w-md">
           <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Not in a Team</h2>
-          <p className="text-gray-600">You haven't been assigned to any team yet. Please contact your administrator.</p>
+          <p className="text-gray-600">You haven&apos;t been assigned to any team yet. Please contact your administrator.</p>
         </div>
       </div>
     );
@@ -63,7 +63,7 @@ export default async function MemberTeamPage() {
   const team = teamMember.team;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">{team.name}</h1>

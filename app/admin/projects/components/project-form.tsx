@@ -12,11 +12,6 @@ interface User {
   role: string;
 }
 
-interface Department {
-  id: string;
-  name: string;
-  code: string | null;
-}
 
 interface Team {
   id: string;
@@ -54,23 +49,18 @@ export function ProjectForm({ onSubmit, onClose, isLoading, initialData }: Proje
     startDate: "",
     endDate: "",
     budget: "",
-    departmentId: "",
     teamId: "", // New field for team selection
     projectManagerId: "",
   });
 
   const [teamLeads, setTeamLeads] = useState<User[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [filteredTeams, setFilteredTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState({
     teamLeads: false,
-    departments: false,
     teams: false,
   });
   const [fetchError, setFetchError] = useState({
     teamLeads: "",
-    departments: "",
     teams: "",
   });
 
@@ -85,14 +75,13 @@ export function ProjectForm({ onSubmit, onClose, isLoading, initialData }: Proje
         startDate: initialData.startDate ? new Date(initialData.startDate).toISOString().split('T')[0] : "",
         endDate: initialData.endDate ? new Date(initialData.endDate).toISOString().split('T')[0] : "",
         budget: initialData.budget?.toString() || "",
-        departmentId: initialData.departmentId || "",
         teamId: initialData.teamId || "",
         projectManagerId: initialData.projectManagerId || "",
       });
     }
   }, [initialData]);
 
-  // Fetch team leads (users with TEAMLEADER role)
+  // Fetch team leads (users with PROJECT_MANAGER role)
   useEffect(() => {
     const fetchTeamLeads = async () => {
       setLoading(prev => ({ ...prev, teamLeads: true }));
@@ -115,8 +104,8 @@ export function ProjectForm({ onSubmit, onClose, isLoading, initialData }: Proje
               ? data.data
               : [];
 
-        // Filter to ensure only users with TEAMLEADER role are included
-        const filteredTeamLeads = usersArray.filter((user: User) => user?.role === "TEAMLEADER");
+        // Filter to ensure only users with PROJECT_MANAGER role are included
+        const filteredTeamLeads = usersArray.filter((user: User) => user?.role === "PROJECT_MANAGER");
         setTeamLeads(filteredTeamLeads);
       } catch (error) {
         console.error("Error fetching team leads:", error);
@@ -132,43 +121,6 @@ export function ProjectForm({ onSubmit, onClose, isLoading, initialData }: Proje
     fetchTeamLeads();
   }, []);
 
-  // Fetch departments
-  useEffect(() => {
-    const fetchDepartments = async () => {
-      setLoading(prev => ({ ...prev, departments: true }));
-      setFetchError(prev => ({ ...prev, departments: "" }));
-
-      try {
-        const response = await fetch("/api/admin/departments");
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch departments: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        // Normalize response: API may return an array or an object containing the array
-        const departmentsArray: any[] = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.departments)
-            ? data.departments
-            : Array.isArray(data?.data)
-              ? data.data
-              : [];
-
-        setDepartments(departmentsArray);
-      } catch (error) {
-        console.error("Error fetching departments:", error);
-        setFetchError(prev => ({
-          ...prev,
-          departments: "Failed to load departments. Please try again."
-        }));
-      } finally {
-        setLoading(prev => ({ ...prev, departments: false }));
-      }
-    };
-
-    fetchDepartments();
-  }, []);
 
   // Fetch teams
   useEffect(() => {
@@ -194,7 +146,6 @@ export function ProjectForm({ onSubmit, onClose, isLoading, initialData }: Proje
               : [];
 
         setTeams(teamsArray);
-        setFilteredTeams(teamsArray);
       } catch (error) {
         console.error("Error fetching teams:", error);
         setFetchError(prev => ({
@@ -209,23 +160,6 @@ export function ProjectForm({ onSubmit, onClose, isLoading, initialData }: Proje
     fetchTeams();
   }, []);
 
-  // Filter teams based on selected department
-  useEffect(() => {
-    if (formData.departmentId) {
-      const filtered = teams.filter(team => team.departmentId === formData.departmentId);
-      setFilteredTeams(filtered);
-      
-      // If current team selection doesn't belong to the selected department, clear it
-      if (formData.teamId) {
-        const selectedTeam = teams.find(t => t.id === formData.teamId);
-        if (selectedTeam && selectedTeam.departmentId !== formData.departmentId) {
-          setFormData(prev => ({ ...prev, teamId: "" }));
-        }
-      }
-    } else {
-      setFilteredTeams(teams);
-    }
-  }, [formData.departmentId, teams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -251,7 +185,6 @@ export function ProjectForm({ onSubmit, onClose, isLoading, initialData }: Proje
         endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
         budget: formData.budget ? parseFloat(formData.budget) : null,
         projectManagerId: formData.projectManagerId || null,
-        departmentId: formData.departmentId || null,
         teamId: formData.teamId || null, // Include team selection
       };
 
@@ -413,32 +346,6 @@ export function ProjectForm({ onSubmit, onClose, isLoading, initialData }: Proje
             />
           </div>
 
-          {/* Department Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Department
-            </label>
-            <select
-              name="departmentId"
-              value={formData.departmentId}
-              onChange={handleChange}
-              disabled={loading.departments}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <option value="">Select a department</option>
-              {departments.map((dept) => (
-                <option key={dept.id} value={dept.id}>
-                  {dept.name} {dept.code ? `(${dept.code})` : ''}
-                </option>
-              ))}
-            </select>
-            {loading.departments && (
-              <p className="text-sm text-gray-500 mt-1">Loading departments...</p>
-            )}
-            {fetchError.departments && (
-              <p className="text-sm text-red-500 mt-1">{fetchError.departments}</p>
-            )}
-          </div>
 
           {/* Team Selection - New Field */}
           <div>
@@ -453,7 +360,7 @@ export function ProjectForm({ onSubmit, onClose, isLoading, initialData }: Proje
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="">Select a team</option>
-              {filteredTeams.map((team) => (
+              {teams.map((team) => (
                 <option key={team.id} value={team.id}>
                   {team.name} 
                   {team.department ? ` (${team.department.name})` : ''}
@@ -466,11 +373,6 @@ export function ProjectForm({ onSubmit, onClose, isLoading, initialData }: Proje
             )}
             {fetchError.teams && (
               <p className="text-sm text-red-500 mt-1">{fetchError.teams}</p>
-            )}
-            {filteredTeams.length === 0 && formData.departmentId && (
-              <p className="text-sm text-yellow-500 mt-1">
-                No teams found for this department. Please select another department or create a team first.
-              </p>
             )}
           </div>
 
@@ -516,7 +418,7 @@ export function ProjectForm({ onSubmit, onClose, isLoading, initialData }: Proje
             </button>
             <button
               type="submit"
-              disabled={isLoading || loading.teamLeads || loading.departments || loading.teams}
+              disabled={isLoading || loading.teamLeads || loading.teams}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading 

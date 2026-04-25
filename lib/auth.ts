@@ -156,9 +156,9 @@ export const authOptions: NextAuthOptions = {
         (session.user as { username?: string }).username =
           token.username as string;
 
-        // Add isAdmin helper
         session.user.isAdmin = token.role === "ADMIN";
         session.user.isProjectManager = token.role === "PROJECT_MANAGER";
+        session.user.isTeamMember = token.role === "TEAM_MEMBER";
       }
       return session;
     },
@@ -189,12 +189,12 @@ export const authOptions: NextAuthOptions = {
               email: user.email!,
               fullName: user.name!,
               avatarUrl: user.image ?? null,
-              role: "USER",
+              role: "TEAM_MEMBER",
               status: "ACTIVE",
               emailVerified: new Date(), // Google accounts are pre-verified
               // password is required by the Prisma schema; OAuth users don't have one.
-              password: "",
-              username: user.username ?? "google_user", // fallback username for OAuth
+              password: null,
+              username: user.email!.split("@")[0] + "_" + Math.random().toString(36).substring(2, 7),
             },
           });
           return true;

@@ -147,11 +147,14 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight uppercase italic">
             Projects
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Manage and oversee all projects
+          <h2 className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em] mt-1">
+            Global Project Nexus
+          </h2>
+          <p className="text-lg text-gray-600 dark:text-gray-400 mt-2 font-medium">
+            Manage and oversee all operational infrastructure projects.
           </p>
         </div>
         <button
@@ -171,10 +174,10 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
               <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-base font-bold text-gray-600 dark:text-gray-400 uppercase tracking-tighter">
                 Total Projects
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">
                 {stats.total}
               </p>
             </div>
@@ -187,8 +190,8 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
               <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Active</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-base font-bold text-gray-600 dark:text-gray-400 uppercase tracking-tighter">Active</p>
+              <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">
                 {stats.active}
               </p>
             </div>
@@ -201,10 +204,10 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
               <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-base font-bold text-gray-600 dark:text-gray-400 uppercase tracking-tighter">
                 Planning
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">
                 {stats.planning}
               </p>
             </div>
@@ -217,10 +220,10 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
               <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-base font-bold text-gray-600 dark:text-gray-400 uppercase tracking-tighter">
                 Completed
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">
                 {stats.completed}
               </p>
             </div>

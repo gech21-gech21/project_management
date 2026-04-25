@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { createNotification } from "@/lib/notifications";
 
 export async function POST(
   req: NextRequest,
@@ -14,7 +15,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (session.user.role !== "MEMBER" && session.user.role !== "USER") {
+    if (session.user.role !== "TEAM_MEMBER") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -26,12 +27,20 @@ export async function POST(
       return NextResponse.json({ error: "Comment content is required" }, { status: 400 });
     }
 
-    // Verify task is assigned to this member
+    // Verify task is assigned to this member and find project manager
     const task = await prisma.task.findFirst({
       where: {
         id: taskId,
         assignedToId: session.user.id,
       },
+      include: {
+        project: {
+          select: {
+            projectManagerId: true,
+            name: true,
+          }
+        }
+      }
     });
 
     if (!task) {
@@ -58,6 +67,18 @@ export async function POST(
         },
       },
     });
+
+    // Notify Project Manager
+    if (task.project.projectManagerId) {
+        await createNotification({
+            userId: task.project.projectManagerId,
+            title: "New Task Comment",
+            message: `${session.user.name || 'A team member'} commented on task: "${task.title}"`,
+            type: "COMMENT",
+            relatedId: taskId,
+            relatedType: "TASK",
+        });
+    }
 
     return NextResponse.json({
       success: true,

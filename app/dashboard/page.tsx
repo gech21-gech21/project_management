@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   LayoutDashboard,
@@ -64,10 +64,10 @@ export default async function DashboardPage() {
     // Tasks stats
     prisma.task.count({ where: baseWhere }),
     
-    // Teams count (only for admin and team leads)
-    session.user.role !== "USER"
+    // Teams count (only for admin and project managers)
+    session.user.role !== "TEAM_MEMBER"
       ? prisma.team.count({
-          where: session.user.role === "TEAMLEADER"
+          where: session.user.role === "PROJECT_MANAGER"
             ? { teamLeadId: session.user.id }
             : {},
         })
@@ -129,10 +129,10 @@ export default async function DashboardPage() {
   });
 
   const statusCounts = {
-    TODO: tasksByStatus.find((s) => s.status === "TODO")?._count?._all || 0,
-    IN_PROGRESS: tasksByStatus.find((s) => s.status === "IN_PROGRESS")?._count?._all || 0,
-    REVIEW: tasksByStatus.find((s) => s.status === "REVIEW")?._count?._all || 0,
-    COMPLETED: tasksByStatus.find((s) => s.status === "COMPLETED")?._count?._all || 0,
+    TODO: Number(tasksByStatus.find((s) => s.status === "TODO")?._count?._all || 0),
+    IN_PROGRESS: Number(tasksByStatus.find((s) => s.status === "IN_PROGRESS")?._count?._all || 0),
+    REVIEW: Number(tasksByStatus.find((s) => s.status === "REVIEW")?._count?._all || 0),
+    COMPLETED: Number(tasksByStatus.find((s) => s.status === "COMPLETED")?._count?._all || 0),
   };
 
   const statCards = [
@@ -171,19 +171,19 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-8">
       {/* Welcome Section */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
             Welcome back, {session.user?.name || session.user?.email?.split("@")[0]}!
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Here's what's happening with your projects today.
+          <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
+            Here&apos;s what&apos;s happening with your projects today.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-          <Calendar size={16} />
+        <div className="hidden sm:flex items-center gap-2.5 px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-full text-xs font-medium text-gray-500 dark:text-gray-400 shadow-sm">
+          <Calendar size={14} className="text-blue-500" />
           <span>{new Date().toLocaleDateString("en-US", { 
             weekday: 'long', 
             year: 'numeric', 
@@ -194,36 +194,36 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           const colorClasses = {
-            blue: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
-            green: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
-            purple: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
-            emerald: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
+            blue: "bg-blue-50 text-blue-600 dark:bg-blue-900/10 dark:text-blue-400 border-blue-100 dark:border-blue-900/20",
+            green: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/10 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/20",
+            purple: "bg-purple-50 text-purple-600 dark:bg-purple-900/10 dark:text-purple-400 border-purple-100 dark:border-purple-900/20",
+            emerald: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/10 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/20",
           };
 
           return (
             <Link
               key={index}
               href={stat.link}
-              className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all group"
+              className="bg-white dark:bg-[#0a0a0a] rounded-2xl p-6 border border-gray-100 dark:border-[#1a1a1a] hover:shadow-md hover:border-blue-500/20 transition-all group overflow-hidden relative"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-lg ${colorClasses[stat.color as keyof typeof colorClasses]}`}>
-                  <Icon size={24} />
+              <div className="flex items-center justify-between mb-6">
+                <div className={`p-2.5 rounded-xl border ${colorClasses[stat.color as keyof typeof colorClasses]}`}>
+                  <Icon size={20} />
                 </div>
-                <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                  {stat.change}
-                </span>
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 tracking-tighter bg-emerald-50 dark:bg-emerald-900/10 px-1.5 py-0.5 rounded">
+                    {stat.change}
+                  </span>
+                </div>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1 leading-none">{stat.title}</p>
+              <h3 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
                 {stat.value}
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                {stat.title}
-              </p>
             </Link>
           );
         })}

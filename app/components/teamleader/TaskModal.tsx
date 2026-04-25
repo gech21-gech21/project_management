@@ -1,4 +1,4 @@
-// app/components/teamleader/TaskModal.tsx
+// app/components/manager/TaskModal.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -55,8 +55,8 @@ export default function TaskModal({ projectId, task, teamMembers, onClose, onSuc
 
     try {
       const url = task
-        ? `/api/teamleader/tasks/${task.id}`
-        : "/api/teamleader/tasks";
+        ? `/api/manager/tasks/${task.id}`
+        : "/api/manager/tasks";
       
       const method = task ? "PUT" : "POST";
 

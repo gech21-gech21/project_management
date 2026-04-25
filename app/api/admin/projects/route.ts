@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { ProjectStatus, Priority, MemberRole, Role } from "@prisma/client";
+import { createNotification, createManyNotifications } from "@/lib/notifications";
 
 const projectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
@@ -22,7 +23,6 @@ const projectSchema = z.object({
     .default("PLANNING"),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
   teamId: z.string().uuid().optional().nullable(),
-  departmentId: z.string().uuid().optional().nullable(),
 });
 
 export async function POST(req: Request) {
@@ -30,28 +30,29 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
 
     if (!session) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (session.user.role !== "ADMIN") {
-      return new NextResponse("Forbidden", { status: 403 });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await req.json();
     const validatedData = projectSchema.parse(body);
 
-    // Check if project manager exists and has TEAMLEADER role
+    // Check if project manager exists and has PROJECT_MANAGER role
     const manager = await prisma.user.findFirst({
       where: {
         id: validatedData.projectManagerId,
-        role: Role.TEAMLEADER,
+        role: Role.PROJECT_MANAGER,
       },
     });
 
     if (!manager) {
-      return new NextResponse("Project manager not found or invalid role", {
-        status: 400,
-      });
+      return NextResponse.json(
+        { error: "Project manager not found or invalid role" },
+        { status: 400 }
+      );
     }
 
     // Create project with project manager, team, and department
@@ -65,7 +66,6 @@ export async function POST(req: Request) {
         priority: validatedData.priority as Priority,
         projectManagerId: validatedData.projectManagerId,
         teamId: validatedData.teamId,
-        departmentId: validatedData.departmentId,
       },
       include: {
         projectManager: {
@@ -99,13 +99,7 @@ export async function POST(req: Request) {
       teamMembers.forEach(tm => membersToAdd.push({ userId: tm.userId, role: MemberRole.MEMBER }));
     }
 
-    if (validatedData.departmentId) {
-      const deptMembers = await prisma.user.findMany({
-        where: { departmentId: validatedData.departmentId },
-        select: { id: true },
-      });
-      deptMembers.forEach(u => membersToAdd.push({ userId: u.id, role: MemberRole.MEMBER }));
-    }
+
 
     // Deduplicate array by userId
     const uniqueMap = new Map();
@@ -125,17 +119,40 @@ export async function POST(req: Request) {
         })),
         skipDuplicates: true,
       });
+
+      // Notify all project members except the manager (who is notified separately below)
+      const membersToNotify = uniqueMembers.filter(m => m.userId !== validatedData.projectManagerId);
+      if (membersToNotify.length > 0) {
+        await createManyNotifications(
+          membersToNotify.map(m => ({
+            userId: m.userId,
+            title: "Added to New Project",
+            message: `You have been added to the project: "${project.name}"`,
+            type: "PROJECT_ASSIGNED",
+            relatedId: project.id,
+            relatedType: "PROJECT",
+          }))
+        );
+      }
     }
+
+    // Trigger notification for the manager
+    await createNotification({
+      userId: validatedData.projectManagerId,
+      title: "New Project Assigned",
+      message: `You have been assigned as the manager for the project: "${project.name}"`,
+      type: "PROJECT_ASSIGNED",
+      relatedId: project.id,
+      relatedType: "PROJECT",
+    });
 
     return NextResponse.json(project);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return new NextResponse(JSON.stringify(error.issues), {
-        status: 400,
-      });
+      return NextResponse.json({ error: "Validation failed", issues: error.issues }, { status: 400 });
     }
     console.error("[PROJECTS_POST]", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -144,11 +161,11 @@ export async function GET(req: Request) {
     const session = await getServerSession(authOptions);
 
     if (!session) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (session.user.role !== "ADMIN") {
-      return new NextResponse("Forbidden", { status: 403 });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -182,6 +199,6 @@ export async function GET(req: Request) {
     return NextResponse.json(projects);
   } catch (error) {
     console.error("[PROJECTS_GET]", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

@@ -9,6 +9,7 @@ function AuthContent() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
+  const [specialization, setSpecialization] = useState("");
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -71,6 +72,7 @@ function AuthContent() {
             password,
             name,
             username,
+            specialization: specialization || undefined,
           }),
         });
 
@@ -93,6 +95,7 @@ function AuthContent() {
             setPassword("");
             setName("");
             setUsername("");
+            setSpecialization("");
           }
         } else {
           setError(data.error || "Registration failed");
@@ -214,6 +217,22 @@ function AuthContent() {
                   />
                
                 </div>
+
+                {/* Specialization Field */}
+                <div>
+                  <select
+                    value={specialization}
+                    onChange={(e) => setSpecialization(e.target.value)}
+                    className="w-full px-4 py-3 text-base bg-white border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    required
+                    disabled={loading}
+                  >
+                    <option value="" disabled>Select Specialization</option>
+                    <option value="Frontend">Frontend</option>
+                    <option value="Backend">Backend</option>
+                    <option value="Fullstack">Fullstack</option>
+                  </select>
+                </div>
               </>
             )}
             
@@ -287,6 +306,7 @@ function AuthContent() {
                 setPassword("");
                 setName("");
                 setUsername("");
+                setSpecialization("");
               }}
               className="text-blue-500 font-medium hover:text-blue-600 transition disabled:opacity-60"
               disabled={loading}

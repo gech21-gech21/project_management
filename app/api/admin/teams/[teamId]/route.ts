@@ -143,6 +143,19 @@ export async function PUT(
       },
     });
 
+    // Notify new Team Lead if assigned
+    if (teamLeadId && teamLeadId !== session.user.id) {
+        const { createNotification } = await import("@/lib/notifications");
+        await createNotification({
+            userId: teamLeadId,
+            title: "Assigned as Team Leader",
+            message: `You have been assigned as the leader for team: "${team.name}"`,
+            type: "TEAM_LEADER_ASSIGNED",
+            relatedId: team.id,
+            relatedType: "TEAM",
+        });
+    }
+
     return NextResponse.json({ data: team });
   } catch (error) {
     console.error("Error updating team:", error);

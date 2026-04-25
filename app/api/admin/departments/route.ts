@@ -11,7 +11,6 @@ export async function GET(request: NextRequest) {
     if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
     const departments = await prisma.department.findMany({
       include: {
         manager: {
@@ -95,6 +94,19 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Notify new Department Head if assigned
+    if (headId && headId !== session.user.id) {
+        const { createNotification } = await import("@/lib/notifications");
+        await createNotification({
+            userId: headId,
+            title: "Assigned as Department Head",
+            message: `You have been assigned as the head of department: "${department.name}"`,
+            type: "DEPT_HEAD_ASSIGNED",
+            relatedId: department.id,
+            relatedType: "DEPARTMENT",
+        });
+    }
 
     return NextResponse.json({ data: department }, { status: 201 });
   } catch (error) {

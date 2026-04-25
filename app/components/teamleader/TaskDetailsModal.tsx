@@ -1,4 +1,4 @@
-// app/components/teamleader/TaskDetailsModal.tsx
+// app/components/manager/TaskDetailsModal.tsx
 "use client";
 
 interface TaskDetailsModalProps {

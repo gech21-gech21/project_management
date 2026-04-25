@@ -18,7 +18,8 @@ model User {
   fullName  String
   username  String   @unique
   avatarUrl String?
-  role      Role     @default(USER)
+  specialization String?
+  role      Role     @default(TEAM_MEMBER)
   status    UserStatus @default(ACTIVE)
 
   // Email verification fields
@@ -54,6 +55,10 @@ model User {
   // NextAuth relations
   accounts Account[]
   sessions Session[]
+
+  // Messaging relations
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -117,8 +122,6 @@ model Project {
   teamId      String?
   team        Team?         @relation("TeamProjects", fields: [teamId], references: [id])
 
-  departmentId String?
-  department   Department?  @relation("ProjectDepartments", fields: [departmentId], references: [id])
 
   projectManagerId String?
   projectManager   User?   @relation("ProjectManager", fields: [projectManagerId], references: [id])
@@ -175,6 +178,11 @@ model Task {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  isBlocked          Boolean  @default(false)
+  blockerReason      String?  @db.Text
+  extensionRequested Boolean  @default(false)
+  extensionReason    String?  @db.Text
 
   @@map("tasks")
 }
@@ -256,6 +264,9 @@ model Attachment {
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id])
 
+  messageId String?
+  message   Message? @relation(fields: [messageId], references: [id])
+
   createdAt DateTime @default(now())
 
   @@map("attachments")
@@ -277,7 +288,7 @@ model Department {
 
   users User[] @relation("UserDepartment")
   teams Team[]
-  projects Project[] @relation("ProjectDepartments")
+
 
   createdAt DateTime @default(now())
 
@@ -379,14 +390,32 @@ model TeamMember {
   @@map("team_members")
 }
 
+model Message {
+  id          String   @id @default(uuid())
+  content     String   @db.Text
+  
+  senderId    String
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  
+  receiverId  String
+  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  attachments Attachment[]
+  
+  @@map("messages")
+}
+
 ///////////////////////
 // ENUMS
 ///////////////////////
 
 enum Role {
-  USER
-  TEAMLEADER
   ADMIN
+  PROJECT_MANAGER
+  TEAM_MEMBER
 }
 
 enum UserStatus {
@@ -453,6 +482,13 @@ enum NotificationType {
   STATUS_CHANGE
   MENTION
   PROJECT_UPDATE
+  NEW_MESSAGE
+  PROJECT_ASSIGNED
+  FILE_UPLOAD
+  TEAM_LEADER_ASSIGNED
+  DEPT_HEAD_ASSIGNED
+  TASK_COMPLETED
+  PROJECT_COMPLETED
 }
 
 enum role {

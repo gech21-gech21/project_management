@@ -12,7 +12,7 @@ export default async function MemberTasksPage() {
     redirect("/auth");
   }
 
-  if (session.user.role !== "MEMBER" && session.user.role !== "USER") {
+  if (session.user.role !== "TEAM_MEMBER") {
     redirect("/dashboard");
   }
 
@@ -78,77 +78,71 @@ export default async function MemberTasksPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Tasks</h1>
-          <p className="mt-2 text-gray-600">
-            View and manage all tasks assigned to you
-          </p>
-        </div>
+    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
         {/* Kanban Board */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* TODO Column */}
-          <div className="bg-gray-100/50 rounded-xl p-4 border border-gray-200">
-            <h2 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
-              <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-              To Do ({groupedTasks.TODO.length})
+          <div className="bg-gray-50/50 dark:bg-white/[0.02] rounded-2xl p-5 border border-gray-100 dark:border-white/5">
+            <h2 className="text-[11px] font-black text-gray-400 dark:text-gray-500 mb-6 flex items-center gap-2 uppercase tracking-[0.2em]">
+              <div className="w-1.5 h-1.5 bg-gray-400 rounded-full shadow-[0_0_8px_rgba(156,163,175,0.4)]"></div>
+              Awaiting Action ({groupedTasks.TODO.length})
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {groupedTasks.TODO.map((task) => (
                 <TaskCard key={task.id} task={task} />
               ))}
               {groupedTasks.TODO.length === 0 && (
-                <EmptyState message="No tasks to do" />
+                <EmptyState message="No tasks in queue" icon="A" />
               )}
             </div>
           </div>
 
           {/* IN PROGRESS Column */}
-          <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100">
-            <h2 className="font-semibold text-blue-700 mb-4 flex items-center gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              In Progress ({groupedTasks.IN_PROGRESS.length})
+          <div className="bg-blue-50/30 dark:bg-blue-500/[0.02] rounded-2xl p-5 border border-blue-100/50 dark:border-blue-500/10">
+            <h2 className="text-[11px] font-black text-blue-600 dark:text-blue-400 mb-6 flex items-center gap-2 uppercase tracking-[0.2em]">
+              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)] animate-pulse"></div>
+              Active Sync ({groupedTasks.IN_PROGRESS.length})
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {groupedTasks.IN_PROGRESS.map((task) => (
                 <TaskCard key={task.id} task={task} />
               ))}
               {groupedTasks.IN_PROGRESS.length === 0 && (
-                <EmptyState message="No tasks in progress" />
+                <EmptyState message="No active operations" icon="S" />
               )}
             </div>
           </div>
 
           {/* REVIEW Column */}
-          <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
-            <h2 className="font-semibold text-purple-700 mb-4 flex items-center gap-2">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              Review ({groupedTasks.REVIEW.length})
+          <div className="bg-purple-50/30 dark:bg-purple-500/[0.02] rounded-2xl p-5 border border-purple-100/50 dark:border-purple-500/10">
+            <h2 className="text-[11px] font-black text-purple-600 dark:text-purple-400 mb-6 flex items-center gap-2 uppercase tracking-[0.2em]">
+              <div className="w-1.5 h-1.5 bg-purple-500 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.6)]"></div>
+              Quality Audit ({groupedTasks.REVIEW.length})
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {groupedTasks.REVIEW.map((task) => (
                 <TaskCard key={task.id} task={task} />
               ))}
               {groupedTasks.REVIEW.length === 0 && (
-                <EmptyState message="No tasks in review" />
+                <EmptyState message="Clean manifest" icon="Q" />
               )}
             </div>
           </div>
 
           {/* COMPLETED Column */}
-          <div className="bg-green-50/50 rounded-xl p-4 border border-green-100">
-            <h2 className="font-semibold text-green-700 mb-4 flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              Completed ({groupedTasks.COMPLETED.length})
+          <div className="bg-emerald-50/30 dark:bg-emerald-500/[0.02] rounded-2xl p-5 border border-emerald-100/50 dark:border-emerald-500/10">
+            <h2 className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 mb-6 flex items-center gap-2 uppercase tracking-[0.2em]">
+              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+              Archived ({groupedTasks.COMPLETED.length})
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {groupedTasks.COMPLETED.map((task) => (
                 <TaskCard key={task.id} task={task} isCompleted />
               ))}
               {groupedTasks.COMPLETED.length === 0 && (
-                <EmptyState message="No completed tasks" />
+                <EmptyState message="No archived tasks" icon="Z" />
               )}
             </div>
           </div>
@@ -161,11 +155,11 @@ export default async function MemberTasksPage() {
 function TaskCard({ task, isCompleted = false }: { task: any, isCompleted?: boolean }) {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "URGENT": return "bg-red-100 text-red-800";
-      case "HIGH": return "bg-orange-100 text-orange-800";
-      case "MEDIUM": return "bg-yellow-100 text-yellow-800";
-      case "LOW": return "bg-blue-100 text-blue-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "URGENT": return "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/10 dark:text-red-400 dark:border-red-900/20";
+      case "HIGH": return "bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-900/10 dark:text-orange-400 dark:border-orange-900/20";
+      case "MEDIUM": return "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/10 dark:text-amber-400 dark:border-amber-900/20";
+      case "LOW": return "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/10 dark:text-blue-400 dark:border-blue-900/20";
+      default: return "bg-gray-50 text-gray-600 border-gray-100 dark:bg-white/5 dark:text-gray-400 dark:border-white/10";
     }
   };
 
@@ -179,43 +173,46 @@ function TaskCard({ task, isCompleted = false }: { task: any, isCompleted?: bool
   return (
     <Link
       href={`/member/tasks/${task.id}`}
-      className="block bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-all border border-gray-200 group"
+      className="block bg-white dark:bg-[#0a0a0a] rounded-xl shadow-sm p-4 border border-gray-100 dark:border-[#1a1a1a] hover:border-blue-500/50 dark:hover:border-blue-400/50 transition-all duration-300 group hover:shadow-lg hover:shadow-blue-500/5"
     >
-      <div className="flex justify-between items-start mb-2">
-        <h3 className={`font-medium text-gray-900 group-hover:text-blue-600 transition-colors ${isCompleted ? 'line-through text-gray-400' : ''}`}>
+      <div className="flex justify-between items-start mb-3">
+        <h3 className={`text-sm font-bold text-gray-900 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight ${isCompleted ? 'line-through opacity-50' : ''}`}>
           {task.title}
         </h3>
-        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${getPriorityColor(task.priority)}`}>
+        <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider border ${getPriorityColor(task.priority)}`}>
           {task.priority}
         </span>
       </div>
       
-      <p className="text-xs text-gray-500 mb-3">
+      <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
         {task.project.name}
       </p>
       
-      <div className="flex items-center justify-between mt-auto">
+      <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50 dark:border-white/5">
         <div className="flex items-center gap-3">
           {task.dueDate && (
-            <div className="flex items-center text-[10px] text-gray-500 font-medium bg-gray-50 px-1.5 py-0.5 rounded ring-1 ring-inset ring-gray-200">
-              <Calendar className="w-3 h-3 mr-1 text-gray-400" />
+            <div className="flex items-center text-[10px] text-gray-500 dark:text-gray-400 font-mono italic">
+              <Calendar className="w-3.5 h-3.5 mr-1.5 opacity-40" />
               {formatDate(task.dueDate)}
             </div>
           )}
         </div>
-        <div className="flex items-center text-gray-400">
-          <MessageSquare className="w-3 h-3 mr-1" />
-          <span className="text-[10px]">{task._count.comments}</span>
+        <div className="flex items-center text-gray-400 dark:text-gray-600">
+          <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
+          <span className="text-[10px] font-bold">{task._count.comments}</span>
         </div>
       </div>
     </Link>
   );
 }
 
-function EmptyState({ message }: { message: string }) {
+function EmptyState({ message, icon }: { message: string, icon: string }) {
   return (
-    <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
-      <p className="text-xs text-gray-400 font-medium">{message}</p>
+    <div className="text-center py-10 border-2 border-dashed border-gray-100 dark:border-white/5 rounded-2xl bg-gray-50/30 dark:bg-white/[0.01]">
+      <div className="w-10 h-10 bg-white dark:bg-[#0a0a0a] rounded-xl shadow-sm border border-gray-100 dark:border-white/5 flex items-center justify-center mx-auto mb-4 text-[10px] font-black text-gray-300 dark:text-gray-600">
+        {icon}
+      </div>
+      <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">{message}</p>
     </div>
   );
 }

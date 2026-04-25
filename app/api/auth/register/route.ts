@@ -14,6 +14,7 @@ const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   name: z.string().min(1, "Name is required"),
+  specialization: z.string().optional(),
   username: z.string()
     .min(3, "Username must be at least 3 characters")
     .max(20, "Username must be at most 20 characters")
@@ -22,7 +23,7 @@ const registerSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const { email, password, name, username } = registerSchema.parse(await req.json());
+    const { email, password, name, username, specialization } = registerSchema.parse(await req.json());
     
     // Check if username already exists
     const existingUsername = await prisma.user.findUnique({
@@ -71,6 +72,7 @@ export async function POST(req: Request) {
             verificationTokenExpiry,
             fullName: name,
             username,
+            specialization,
             password: await bcrypt.hash(password, 12),
           },
         });
@@ -102,11 +104,12 @@ export async function POST(req: Request) {
         email,
         fullName: name,
         username,
+        specialization,
         password: hashedPassword,
         emailVerified: null,
         verificationToken,
         verificationTokenExpiry,
-        role: "USER",
+        role: "TEAM_MEMBER",
         status: "ACTIVE",
       },
       select: {

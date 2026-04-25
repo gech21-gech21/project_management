@@ -28,10 +28,14 @@ export default async function AdminProjectsPage() {
             avatarUrl: true,
           },
         },
-        department: {
-          select: {
-            id: true,
-            name: true,
+        team: {
+          include: {
+            department: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
         _count: {
@@ -47,7 +51,7 @@ export default async function AdminProjectsPage() {
     }),
     prisma.user.findMany({
       where: {
-        role: "TEAMLEADER", // Make sure this matches your role enum
+        role: "PROJECT_MANAGER", // Make sure this matches your role enum
       },
       select: {
         id: true,
@@ -83,7 +87,9 @@ export default async function AdminProjectsPage() {
       tasks: p._count.tasks,
       projectMembers: p._count.projectMembers,
     },
-    department: p.department,
+    department: p.team?.department ?? null,
+    departmentId: p.team?.department?.id ?? null,
+    team: p.team,
   }));
 
   return <ProjectsClient initialProjects={projectsForClient} />;

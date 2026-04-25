@@ -69,10 +69,10 @@ export function ProjectCard({ project, status, StatusIcon }: ProjectCardProps) {
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+          <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2 uppercase tracking-tighter italic">
             {project.name}
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+          <p className="text-base font-medium text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
             {project.description || "No description provided"}
           </p>
         </div>
@@ -82,13 +82,13 @@ export function ProjectCard({ project, status, StatusIcon }: ProjectCardProps) {
       {/* Status and Priority */}
       <div className="flex items-center gap-2 mb-4">
         <span
-          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${status.color}`}
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-black uppercase tracking-widest ${status.color}`}
         >
-          <StatusIcon className="w-3 h-3" />
+          <StatusIcon className="w-3.5 h-3.5" />
           {status.label}
         </span>
         <span
-          className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${getPriorityColor(
+          className={`inline-flex items-center px-3 py-1 rounded-lg text-sm font-black uppercase tracking-widest ${getPriorityColor(
             project.priority,
           )}`}
         >
@@ -114,7 +114,7 @@ export function ProjectCard({ project, status, StatusIcon }: ProjectCardProps) {
               </div>
             )}
           </div>
-          <span className="text-sm text-gray-700 dark:text-gray-300">
+          <span className="text-base font-bold text-gray-700 dark:text-gray-300">
             Lead: {project.teamLead.name || project.teamLead.email}
           </span>
         </div>
@@ -133,13 +133,13 @@ export function ProjectCard({ project, status, StatusIcon }: ProjectCardProps) {
       </div>
 
       {/* Stats */}
-      <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-        <div className="flex items-center gap-1">
-          <Users className="w-4 h-4" />
+      <div className="flex items-center justify-between text-base font-bold text-gray-600 dark:text-gray-400">
+        <div className="flex items-center gap-2">
+          <Users className="w-4.5 h-4.5" />
           <span>{project._count.projectMembers} members</span>
         </div>
-        <div className="flex items-center gap-1">
-          <Clock className="w-4 h-4" />
+        <div className="flex items-center gap-2">
+          <Clock className="w-4.5 h-4.5" />
           <span>{project._count.tasks} tasks</span>
         </div>
       </div>

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
+import { createNotification } from "@/lib/notifications";
 
 export async function GET(request: Request) {
   try {
@@ -70,6 +71,18 @@ export async function POST(request: Request) {
         createdById: session.user.id,
       },
     });
+
+    // Notify assigned user
+    if (assignedToId && assignedToId !== session.user.id) {
+        await createNotification({
+            userId: assignedToId,
+            title: "New Task Assigned (Admin)",
+            message: `Admin has assigned you a new task: "${title}"`,
+            type: "TASK_ASSIGNED",
+            relatedId: task.id,
+            relatedType: "TASK",
+        });
+    }
 
     return NextResponse.json({ data: task }, { status: 201 });
   } catch (error) {

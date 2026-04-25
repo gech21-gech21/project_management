@@ -1,44 +1,121 @@
 "use client";
 
-import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
-  FolderKanban,
-  CheckSquare,
-  Users,
-  Settings,
-  LogOut,
   Bell,
-  Menu,
-  X,
   ChevronDown,
   UserCircle,
-  BarChart3,
-  Clock,
+  LogOut,
+  Settings,
+  Plus,
+  Search,
   MessageSquare,
-  Home,
-  Briefcase,
+  X,
+  FolderKanban,
+  CheckSquare,
   UserPlus,
-  Calendar
+  Building2
 } from "lucide-react";
+import Link from "next/link";
+import { ThemeToggle } from "./ThemeToggle";
+import { NotificationsDropdown } from "./NotificationsDropdown";
 
-export default function Navigation() {
+export default function Header() {
   const { data: session } = useSession();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSearchCategoryOpen, setIsSearchCategoryOpen] = useState(false);
+  const [searchCategory, setSearchCategory] = useState("All");
+  const avatarUrlState = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = avatarUrlState;
+  const profileRef = useRef<HTMLDivElement>(null);
+  const searchCategoryRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [notifications] = useState(3); // Example notification count
-  const profileRef = useRef<HTMLDivElement>(null);
+  const [headerSearchQuery, setHeaderSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<{ tasks: any[]; projects: any[]; users: any[] } | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isAddDropdownOpen, setIsAddDropdownOpen] = useState(false);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const addDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Log session data for debugging
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await fetch("/api/messages/unread");
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadMessageCount(data.count);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
-    console.log("🔍 Navigation - Session Data:", session);
-    console.log("🔍 Navigation - User Role:", session?.user?.role);
-  }, [session]);
+    if (session?.user) {
+      fetchUnreadCount();
+      const interval = setInterval(fetchUnreadCount, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [session?.user]);
+
+  const getBasePath = () => {
+    switch(session?.user?.role) {
+      case "ADMIN": return "/admin";
+      case "PROJECT_MANAGER": return "/manager";
+      default: return "/member";
+    }
+  };
+
+  const getTeamRoute = () => {
+    return session?.user?.role === "ADMIN" ? "users" : "team";
+  };
+
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && headerSearchQuery.trim()) {
+      setShowDropdown(false);
+      const q = encodeURIComponent(headerSearchQuery.trim());
+      const base = getBasePath();
+      if (searchCategory === "Tasks") {
+         router.push(`${base}/tasks?q=${q}&type=title`);
+      } else if (searchCategory === "Projects") {
+         router.push(`${base}/projects?q=${q}`);
+      } else if (searchCategory === "Members") {
+         router.push(`${base}/${getTeamRoute()}?q=${q}`);
+      } else {
+         router.push(`${base}/tasks?q=${q}&type=title`); // fallback
+      }
+    }
+  };
+
+  // Fetch real-time search results
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (headerSearchQuery.trim().length >= 2) {
+        setIsSearching(true);
+        setShowDropdown(true);
+        try {
+          const res = await fetch(`/api/search?q=${encodeURIComponent(headerSearchQuery)}`);
+          if (!res.ok) throw new Error(`Search failed: ${res.status}`);
+          const data = await res.json();
+          setSearchResults(data);
+        } catch (e) {
+          console.error(e);
+          setSearchResults(null);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults(null);
+        setShowDropdown(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [headerSearchQuery]);
 
   // Handle click outside for profile dropdown
   useEffect(() => {
@@ -46,428 +123,329 @@ export default function Navigation() {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setIsProfileOpen(false);
       }
+      if (searchCategoryRef.current && !searchCategoryRef.current.contains(e.target as Node)) {
+        setIsSearchCategoryOpen(false);
+      }
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+      if (addDropdownRef.current && !addDropdownRef.current.contains(e.target as Node)) {
+        setIsAddDropdownOpen(false);
+      }
     }
     document.addEventListener("click", onClickOutside);
     return () => document.removeEventListener("click", onClickOutside);
   }, []);
 
-  // Close mobile menu on route change
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-    setIsProfileOpen(false);
-  }, [pathname]);
 
-  const handleSignOut = async () => {
-    await signOut({ redirect: true, callbackUrl: "/" });
-  };
+  // Fetch user's avatar from profile API
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetch("/api/profile")
+        .then(res => {
+          if (!res.ok) throw new Error(`Profile fetch failed: ${res.status}`);
+          return res.json();
+        })
+        .then(data => {
+          if (data.data?.avatarUrl) {
+            setAvatarUrl(data.data.avatarUrl);
+          }
+        })
+        .catch(() => { });
+    }
+  }, [session?.user?.id, pathname]);
 
   const getInitials = () => {
     if (session?.user?.name) {
-      return session.user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    if (session?.user?.email) {
-      return session.user.email[0].toUpperCase();
+      return session.user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
     }
     return "U";
   };
 
-  // Role-based navigation links
-  const getNavLinks = () => {
-    const role = session?.user?.role;
-
-    // Admin Navigation
-    if (role === "ADMIN") {
-      return [
-        {
-          name: "Dashboard",
-          href: "/admin",
-          icon: LayoutDashboard,
-        },
-        {
-          name: "Projects",
-          href: "/admin/projects",
-          icon: FolderKanban,
-        },
-        {
-          name: "Tasks",
-          href: "/admin/tasks",
-          icon: CheckSquare,
-        },
-        {
-          name: "Teams",
-          href: "/admin/teams",
-          icon: Users,
-        },
-        {
-          name: "Users",
-          href: "/admin/users",
-          icon: UserPlus,
-        },
-        {
-          name: "Settings",
-          href: "/admin/settings",
-          icon: Settings,
-        },
-      ];
-    }
-
-    // Team Leader Navigation
-    if (role === "TEAMLEADER") {
-      return [
-        {
-          name: "Dashboard",
-          href: "/teamleader",
-          icon: LayoutDashboard,
-        },
-        {
-          name: "My Projects",
-          href: "/teamleader/projects",
-          icon: FolderKanban,
-        },
-        {
-          name: "Tasks",
-          href: "/teamleader/tasks",
-          icon: CheckSquare,
-        },
-        {
-          name: "My Team",
-          href: "/teamleader/team",
-          icon: Users,
-        },
-        {
-          name: "Progress",
-          href: "/teamleader/progress",
-          icon: BarChart3,
-        },
-        {
-          name: "Messages",
-          href: "/teamleader/messages",
-          icon: MessageSquare,
-        },
-      ];
-    }
-
-    // Member Navigation
-    if (role === "MEMBER" || role === "USER") {
-      return [
-        {
-          name: "Dashboard",
-          href: "/member",
-          icon: LayoutDashboard,
-        },
-        {
-          name: "My Tasks",
-          href: "/member/tasks",
-          icon: CheckSquare,
-        },
-        {
-          name: "Projects",
-          href: "/member/projects",
-          icon: FolderKanban,
-        },
-        {
-          name: "My Team",
-          href: "/member/team",
-          icon: Users,
-        },
-       
-        {
-          name: "Messages",
-          href: "/member/messages",
-          icon: MessageSquare,
-        },
-      ];
-    }
-
-    // Default navigation for unauthenticated users
-    return [
-      {
-        name: "Home",
-        href: "/",
-        icon: Home,
-      },
-      {
-        name: "About",
-        href: "/about",
-        icon: Briefcase,
-      },
-    ];
-  };
-
-  const navLinks = getNavLinks();
-
-  // Get dashboard home link based on role
-  const getDashboardHome = () => {
-    const role = session?.user?.role;
-    if (role === "ADMIN") return "/admin";
-    if (role === "TEAMLEADER") return "/teamleader";
-    if (role === "MEMBER" || role === "USER") return "/member";
-    return "/";
-  };
-
-  // Get role display name
-  const getRoleDisplay = () => {
-    const role = session?.user?.role;
-    switch (role) {
-      case "ADMIN":
-        return "Administrator";
-      case "TEAMLEADER":
-        return "Team Leader";
-      case "MEMBER":
-        return "Team Member";
-      default:
-        return role?.replace("_", " ") || "User";
-    }
-  };
-
-  // Get role-based badge color
-  const getRoleBadgeColor = () => {
-    const role = session?.user?.role;
-    switch (role) {
-      case "ADMIN":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400";
-      case "TEAMLEADER":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
-      case "MEMBER":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-    }
-  };
-
   return (
-    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 fixed w-full z-30 top-0">
-      <div className="px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Left: Logo and Mobile Menu Button */}
-          <div className="flex items-center gap-4">
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+    <>
+      <header className="h-16 bg-white dark:bg-[#0a0a0a] border-b border-gray-200 dark:border-[#1a1a1a] flex items-center justify-between px-6 sticky top-0 z-30 transition-colors duration-300">
 
-            {/* Logo */}
-            <Link href={getDashboardHome()} className="flex items-center gap-2">
-              <span className="text-xl font-bold text-gray-900 dark:text-white hidden sm:block">
-                Project<span className="text-blue-600">Flow</span>
-              </span>
-            </Link>
-
-            {/* Role Badge - Mobile */}
-            {session && (
-              <span className={`lg:hidden text-xs px-2 py-1 rounded-full ${getRoleBadgeColor()}`}>
-                {getRoleDisplay()}
-              </span>
-            )}
+        {/* Left: Logo / App Name */}
+        <Link href="/dashboard" className="flex items-center gap-2.5 group shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-all group-hover:scale-105">
+            <FolderKanban className="w-4 h-4 text-white" />
           </div>
+          <span className="text-sm font-black text-gray-900 dark:text-gray-100 tracking-tight hidden sm:block">
+            ProjectFlow
+          </span>
+        </Link>
 
-          {/* Desktop Navigation Links */}
-          <div className="hidden lg:flex items-center gap-1">
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
-
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 relative ${isActive
-                    ? "text-blue-600 dark:text-blue-400 after:absolute after:bottom-0 after:left-4 after:right-4 after:h-0.5 after:bg-blue-600 after:rounded-full"
-                    : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                    }`}
+        {/* Center: Search */}
+        <div className="flex-1 max-w-xl mx-4 sm:mx-8">
+          <div className="relative w-full" ref={searchContainerRef}>
+            <div className="relative w-full flex items-center bg-gray-50 dark:bg-[#111111] border border-gray-200 dark:border-[#1a1a1a] rounded-xl hover:border-gray-300 dark:hover:border-[#2a2a2a] focus-within:border-blue-500 focus-within:bg-white dark:focus-within:bg-[#151515] transition-all">
+              <div className="pl-4 shrink-0">
+                <Search size={15} className="text-gray-400 dark:text-gray-500 transition-colors" />
+              </div>
+              <input
+                type="text"
+                value={headerSearchQuery}
+                onChange={(e) => setHeaderSearchQuery(e.target.value)}
+                onKeyDown={handleSearch}
+                onFocus={() => {
+                  if (headerSearchQuery.trim().length >= 2) setShowDropdown(true);
+                }}
+                placeholder={`Search ${searchCategory.toLowerCase()}...`}
+                className="flex-1 min-w-0 bg-transparent py-2.5 px-3 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none"
+              />
+              
+              <div className="relative shrink-0" ref={searchCategoryRef}>
+                <button
+                  onClick={() => setIsSearchCategoryOpen(!isSearchCategoryOpen)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 mr-1 text-[11px] font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#2a2a2a] rounded-lg transition-colors border border-transparent dark:hover:border-[#333]"
                 >
-                  <Icon size={18} />
-                  {link.name}
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Right: Role Badge + Notifications + Profile */}
-          <div className="flex items-center gap-3">
-            {session ? (
-              <>
-                {/* Role Badge - Desktop */}
-                <span className={`hidden lg:inline-block text-xs px-3 py-1.5 rounded-full ${getRoleBadgeColor()}`}>
-                  {getRoleDisplay()}
-                </span>
-
-                {/* Notifications */}
-                <button className="relative p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                  <Bell size={20} />
-                  {notifications > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center animate-pulse">
-                      {notifications}
-                    </span>
-                  )}
+                  {searchCategory}
+                  <ChevronDown size={12} className={`transition-transform ${isSearchCategoryOpen ? 'rotate-180' : ''}`} />
                 </button>
 
-                {/* Profile Dropdown */}
-                <div className="relative" ref={profileRef}>
-                  <button
-                    onClick={() => setIsProfileOpen(!isProfileOpen)}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium">
-                      {session.user?.image ? (
-                        <img
-                          src={session.user.image}
-                          alt={session.user.name || ""}
-                          className="w-8 h-8 rounded-full object-cover"
-                        />
-                      ) : (
-                        getInitials()
-                      )}
-                    </div>
-                    <div className="hidden md:block text-left">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {session.user?.name || session.user?.email?.split("@")[0]}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {getRoleDisplay()}
-                      </p>
-                    </div>
-                    <ChevronDown
-                      size={16}
-                      className={`text-gray-500 hidden md:block transition-transform duration-200 ${isProfileOpen ? "rotate-180" : ""
-                        }`}
-                    />
-                  </button>
-
-                  {/* Dropdown Menu */}
-                  {isProfileOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 transform transition-all duration-200 origin-top-right">
-                      <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {session.user?.name || session.user?.email}
-                        </p>
-                        <p className={`text-xs mt-1 px-2 py-0.5 rounded-full inline-block ${getRoleBadgeColor()}`}>
-                          {getRoleDisplay()}
-                        </p>
-                      </div>
-                      <Link
-                        href="/profile"
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                      >
-                        <UserCircle size={16} />
-                        Profile
-                      </Link>
-                      <Link
-                        href="/settings"
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                      >
-                        <Settings size={16} />
-                        Settings
-                      </Link>
-                      <hr className="my-1 border-gray-200 dark:border-gray-700" />
+                {isSearchCategoryOpen && (
+                  <div className="absolute right-0 mt-2 w-36 bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#1a1a1a] rounded-xl shadow-xl py-1 z-50">
+                    {['All', 'Projects', 'Tasks', 'Members'].map((category) => (
                       <button
-                        onClick={handleSignOut}
-                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        key={category}
+                        onClick={() => {
+                          setSearchCategory(category);
+                          setIsSearchCategoryOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2.5 text-[11px] font-bold transition-colors ${
+                          searchCategory === category 
+                            ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#111111]'
+                        }`}
                       >
-                        <LogOut size={16} />
-                        Sign Out
+                        {category}
                       </button>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/auth"
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-                >
-                  Login
-                </Link>
-              
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && session && (
-        <div className="lg:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 animate-slideDown">
-          <div className="px-4 py-3 space-y-1">
-            {/* Mobile User Info */}
-            <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg mb-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium">
-                {session.user?.image ? (
-                  <img
-                    src={session.user.image}
-                    alt={session.user.name || ""}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  getInitials()
+                    ))}
+                  </div>
                 )}
-              </div>
-              <div>
-                <p className="font-medium text-gray-900 dark:text-white">
-                  {session.user?.name || session.user?.email?.split("@")[0]}
-                </p>
-                <p className={`text-xs mt-1 px-2 py-0.5 rounded-full inline-block ${getRoleBadgeColor()}`}>
-                  {getRoleDisplay()}
-                </p>
               </div>
             </div>
 
-            {/* Navigation Links */}
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
+            {/* Quick Autocomplete Dropdown */}
+            {showDropdown && headerSearchQuery.trim().length >= 2 && (
+              <div className="absolute top-full mt-2 w-full bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#1a1a1a] rounded-xl shadow-2xl overflow-hidden z-50 max-h-96 overflow-y-auto">
+                {isSearching ? (
+                  <div className="p-4 text-center text-xs text-gray-500">Searching...</div>
+                ) : searchResults && (searchResults.tasks?.length > 0 || searchResults.projects?.length > 0 || searchResults.users?.length > 0) ? (
+                  <div className="py-2">
+                    {/* Projects Section */}
+                    {(searchCategory === 'All' || searchCategory === 'Projects') && searchResults.projects?.length > 0 && (
+                      <div className="px-3 py-1">
+                        <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 px-2">Projects</h3>
+                        {searchResults.projects.map((p: any) => (
+                          <Link key={p.id} href={`${getBasePath()}/projects/${p.id}`} onClick={() => setShowDropdown(false)} className="block px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-[#111111] rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
+                            {p.name}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Tasks Section */}
+                    {(searchCategory === 'All' || searchCategory === 'Tasks') && searchResults.tasks?.length > 0 && (
+                      <div className="px-3 py-1 mt-1">
+                        <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 px-2">Tasks</h3>
+                        {searchResults.tasks.map((t: any) => (
+                          <Link key={t.id} href={`${getBasePath()}/tasks?q=${encodeURIComponent(t.title)}&type=title`} onClick={() => setShowDropdown(false)} className="block px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-[#111111] rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
+                            {t.title}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
 
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive
-                    ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                    }`}
-                >
-                  <Icon size={20} />
-                  {link.name}
-                </Link>
-              );
-            })}
-
-            <hr className="my-2 border-gray-200 dark:border-gray-700" />
-
-            {/* Mobile Menu Additional Links */}
-            <Link
-              href="/profile"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <UserCircle size={20} />
-              Profile
-            </Link>
-            <Link
-              href="/settings"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <Settings size={20} />
-              Settings
-            </Link>
-            <button
-              onClick={handleSignOut}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <LogOut size={20} />
-              Sign Out
-            </button>
+                    {/* Members Section */}
+                    {(searchCategory === 'All' || searchCategory === 'Members') && searchResults.users?.length > 0 && (
+                      <div className="px-3 py-1 mt-1">
+                        <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 px-2">Members</h3>
+                        {searchResults.users.map((u: any) => (
+                          <Link key={u.id} href={`${getBasePath()}/${getTeamRoute()}?q=${encodeURIComponent(u.fullName)}`} onClick={() => setShowDropdown(false)} className="block px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-[#111111] rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
+                            {u.fullName}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-xs text-gray-500">No results found for &ldquo;{headerSearchQuery}&rdquo;</div>
+                )}
+              </div>
+            )}
           </div>
         </div>
-      )}
-    </nav>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          {session ? (
+            <>
+              {/* + Add Dropdown */}
+              {(session.user?.role === "ADMIN" || session.user?.role === "PROJECT_MANAGER") && (
+                <div className="relative" ref={addDropdownRef}>
+                  <button 
+                    onClick={() => setIsAddDropdownOpen(!isAddDropdownOpen)}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-500/20 hover:shadow-blue-500/40 active:scale-95"
+                  >
+                    <Plus size={14} strokeWidth={2.5} />
+                    <span className="hidden sm:inline">Add</span>
+                  </button>
+
+                  {isAddDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#1a1a1a] rounded-xl shadow-2xl py-1.5 z-50">
+                      <Link 
+                        href={`${getBasePath()}/projects`} 
+                        onClick={() => setIsAddDropdownOpen(false)} 
+                        className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-[#111111] transition-colors"
+                      >
+                        <FolderKanban size={15} className="text-blue-500" />
+                        New Project
+                      </Link>
+                      <Link 
+                        href={`${getBasePath()}/tasks`} 
+                        onClick={() => setIsAddDropdownOpen(false)} 
+                        className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-[#111111] transition-colors"
+                      >
+                        <CheckSquare size={15} className="text-green-500" />
+                        New Task
+                      </Link>
+                      {session.user?.role === "ADMIN" && (
+                        <>
+                          <hr className="my-1 border-gray-100 dark:border-[#1a1a1a]" />
+                          <Link 
+                            href="/admin/users" 
+                            onClick={() => setIsAddDropdownOpen(false)} 
+                            className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-[#111111] transition-colors"
+                          >
+                            <UserPlus size={15} className="text-purple-500" />
+                            New User
+                          </Link>
+                          <Link 
+                            href="/admin/departments?create=true" 
+                            onClick={() => setIsAddDropdownOpen(false)} 
+                            className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-[#111111] transition-colors"
+                          >
+                            <Building2 size={15} className="text-orange-500" />
+                            New Department
+                          </Link>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="w-[1px] h-6 bg-gray-100 dark:bg-[#1a1a1a] mx-1 hidden sm:block" />
+
+              {/* Theme Toggle */}
+              <ThemeToggle />
+
+              {/* Messages */}
+              <Link
+                href="/messages"
+                className="relative w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors"
+                title="Messages"
+              >
+                <MessageSquare size={16} />
+                {unreadMessageCount > 0 && (
+                  <span className="absolute top-1 right-1 w-5 h-5 bg-emerald-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center border-2 border-white dark:border-[#0a0a0a] animate-in fade-in zoom-in duration-300">
+                    {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
+                  </span>
+                )}
+              </Link>
+
+              {/* Notifications */}
+              <NotificationsDropdown />
+
+              <div className="w-[1px] h-6 bg-gray-100 dark:bg-[#1a1a1a] mx-1 hidden sm:block" />
+
+              {/* Profile */}
+              <div className="relative" ref={profileRef}>
+                <button
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl hover:bg-gray-50 dark:hover:bg-[#111111] transition-colors group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-[10px] text-white font-black border-2 border-white dark:border-[#1a1a1a] shadow-sm overflow-hidden">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                    ) : session?.user?.image ? (
+                      <img src={session.user.image} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      getInitials()
+                    )}
+                  </div>
+                  <span className="hidden md:block text-xs font-bold text-gray-900 dark:text-gray-100 truncate max-w-[120px]">
+                    {session?.user?.name?.split(" ")[0] || "User"}
+                  </span>
+                  <ChevronDown size={12} className="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors hidden md:block" />
+                </button>
+
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-[#1a1a1a] rounded-xl shadow-2xl py-1 z-50">
+                    {/* User Info */}
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-[#1a1a1a]">
+                      <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">
+                        {session?.user?.name || "User"}
+                      </p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate mt-0.5">
+                        {session?.user?.email}
+                      </p>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="py-1">
+                      <Link
+                        href="/profile"
+                        onClick={() => setIsProfileOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-[11px] font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-[#111111] transition-colors"
+                      >
+                        <UserCircle size={15} className="text-gray-400" />
+                        My Profile
+                      </Link>
+                      <Link
+                        href="/settings"
+                        onClick={() => setIsProfileOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-[11px] font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-[#111111] transition-colors"
+                      >
+                        <Settings size={15} className="text-gray-400" />
+                        Settings
+                      </Link>
+                    </div>
+
+                    <hr className="border-gray-100 dark:border-[#1a1a1a]" />
+
+                    {/* Sign Out */}
+                    <div className="py-1">
+                      <button
+                        onClick={() => signOut()}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-[11px] font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/10 transition-colors"
+                      >
+                        <LogOut size={15} />
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <Link
+                href="/auth"
+                className="text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+              >
+                Log in
+              </Link>
+         
+            </div>
+          )}
+        </div>
+      </header>
+
+
+    </>
   );
 }

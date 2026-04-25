@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { createNotification } from "@/lib/notifications";
 
 export async function PUT(
     request: Request,
@@ -27,6 +28,11 @@ export async function PUT(
             assignedToId,
         } = json;
 
+        const existingTask = await prisma.task.findUnique({
+            where: { id: taskId },
+            include: { project: { select: { name: true } } }
+        });
+
         const task = await prisma.task.update({
             where: {
                 id: taskId,
@@ -42,6 +48,18 @@ export async function PUT(
                 assignedToId,
             },
         });
+
+        // Notify new assignee if assignment changed
+        if (assignedToId && assignedToId !== existingTask?.assignedToId && assignedToId !== session.user.id) {
+            await createNotification({
+                userId: assignedToId,
+                title: "Task Re-assigned",
+                message: `You have been assigned the task: "${title}" in project "${existingTask?.project?.name || 'Unknown'}"`,
+                type: "TASK_ASSIGNED",
+                relatedId: task.id,
+                relatedType: "TASK",
+            });
+        }
 
         return NextResponse.json({ data: task });
     } catch (error) {

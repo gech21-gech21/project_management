@@ -4,6 +4,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import { Users, Plus, AlertCircle, Search, UserPlus, Edit2, Trash2, FolderKanban, Clock, ShieldCheck, X, ChevronDown } from "lucide-react";
 
 interface Team {
   id: string;
@@ -377,10 +378,10 @@ export default function AdminTeamsPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading teams...</p>
+      <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex items-center justify-center transition-colors duration-300">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-xs font-black text-gray-400 uppercase tracking-[0.3em] animate-pulse">Scanning Neural Network...</p>
         </div>
       </div>
     );
@@ -391,16 +392,22 @@ export default function AdminTeamsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
+        <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-gray-100 dark:border-white/5 pb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Teams Management
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-1.5 bg-blue-500/10 rounded-lg">
+                <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em]">Personnel Logistics</span>
+            </div>
+            <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic">
+              Teams <span className="text-blue-600">Management</span>
             </h1>
-            <p className="mt-2 text-gray-600">
-              Create and manage teams, assign team leaders, and add members
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium">
+              Create and manage team structures, assign leadership nodes, and aggregate personnel.
             </p>
           </div>
           <button
@@ -408,48 +415,40 @@ export default function AdminTeamsPage() {
               resetForm();
               setShowCreateModal(true);
             }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2 text-xs font-black uppercase tracking-widest shadow-[0_0_20px_rgba(37,99,235,0.2)] hover:shadow-[0_0_30px_rgba(37,99,235,0.4)]"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
+            <Plus size={16} />
             Create New Team
           </button>
         </div>
 
         {/* Error Display */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-600">{error}</p>
+          <div className="mb-6 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-xl p-4 animate-in slide-in-from-top-2 duration-300">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+              <p className="text-sm font-bold text-red-600 dark:text-red-400 uppercase tracking-tight">{error}</p>
+            </div>
           </div>
         )}
 
         {/* Filters */}
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 dark:bg-white/[0.02] p-4 rounded-2xl border border-gray-100 dark:border-white/5">
+          <div className="relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={16} />
             <input
               type="text"
               placeholder="Search teams..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium text-gray-900 dark:text-white"
             />
           </div>
-          <div>
+          <div className="relative">
             <select
               value={selectedDepartment}
               onChange={(e) => setSelectedDepartment(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold text-gray-900 dark:text-white appearance-none"
             >
               <option value="">All Departments</option>
               {departments.map((dept) => (
@@ -463,151 +462,127 @@ export default function AdminTeamsPage() {
 
         {/* Teams Grid */}
         {filteredTeams.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {filteredTeams.map((team) => (
               <div
                 key={team.id}
-                className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200"
+                className="glass-card rounded-3xl overflow-hidden group hover:scale-[1.01] transition-all duration-300"
               >
                 {/* Team Header */}
-                <div className="p-6 border-b border-gray-200">
-                  <div className="flex justify-between items-start">
+                <div className="p-8 border-b border-gray-100 dark:border-white/5 relative">
+                  <div className="flex justify-between items-start relative z-10">
                     <div>
-                      <h2 className="text-xl font-semibold text-gray-900">
+                      <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic group-hover:text-blue-600 transition-colors">
                         {team.name}
                       </h2>
                       {team.description && (
-                        <p className="mt-1 text-gray-600">{team.description}</p>
+                        <p className="mt-2 text-sm font-medium text-gray-500 dark:text-gray-400 line-clamp-2">
+                          {team.description}
+                        </p>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => openAddMemberModal(team)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        className="p-2.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"
                         title="Add Member"
                       >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                          />
-                        </svg>
+                        <UserPlus size={18} />
                       </button>
                       <button
                         onClick={() => openEditModal(team)}
-                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        className="p-2.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-xl transition-all"
                         title="Edit Team"
                       >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                          />
-                        </svg>
+                        <Edit2 size={18} />
                       </button>
                       <button
                         onClick={() => handleDeleteTeam(team.id, team.name)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-all"
                         title="Delete Team"
                       >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-4 text-sm">
+                  <div className="mt-6 flex flex-wrap gap-3">
                     {team.department && (
-                      <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full">
-                        📁 {team.department.name}
+                      <span className="px-3 py-1.5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-[10px] font-black text-gray-500 dark:text-gray-400 rounded-lg uppercase tracking-widest flex items-center gap-2">
+                        <FolderKanban size={12} className="opacity-50" />
+                        {team.department.name}
                       </span>
                     )}
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">
-                      👥 {team.members.length} members
+                    <span className="px-3 py-1.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 text-[10px] font-black text-blue-600 dark:text-blue-400 rounded-lg uppercase tracking-widest flex items-center gap-2">
+                      <Users size={12} />
+                      {team.members.length} personnel
                     </span>
-                    <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full">
-                      🕒 Created {new Date(team.createdAt).toLocaleDateString()}
+                    <span className="px-3 py-1.5 bg-purple-50 dark:bg-purple-500/10 border border-purple-100 dark:border-purple-500/20 text-[10px] font-black text-purple-600 dark:text-purple-400 rounded-lg uppercase tracking-widest flex items-center gap-2">
+                      <Clock size={12} />
+                      Deployed {new Date(team.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
 
                 {/* Team Lead */}
                 {team.teamLead && (
-                  <div className="px-6 py-4 bg-purple-50 border-b border-purple-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-purple-200 rounded-full flex items-center justify-center">
-                        <span className="text-purple-700 font-medium">
-                          {team.teamLead.fullName.charAt(0).toUpperCase()}
-                        </span>
+                  <div className="px-8 py-5 bg-purple-50/50 dark:bg-purple-500/5 border-b border-purple-100 dark:border-purple-500/10 relative overflow-hidden">
+                    <div className="flex items-center gap-4 relative z-10">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 p-[2px] shadow-lg">
+                        <div className="w-full h-full rounded-full bg-white dark:bg-[#0a0a0a] flex items-center justify-center overflow-hidden">
+                          <span className="text-lg font-black text-purple-600 dark:text-purple-400 uppercase">
+                            {team.teamLead.fullName.charAt(0)}
+                          </span>
+                        </div>
                       </div>
                       <div>
-                        <p className="text-sm text-purple-600 font-medium">
-                          Team Leader
-                        </p>
-                        <p className="font-medium text-gray-900">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <ShieldCheck size={12} className="text-purple-600" />
+                          <p className="text-[10px] text-purple-600 font-black uppercase tracking-widest">Team Commander</p>
+                        </div>
+                        <p className="font-bold text-gray-900 dark:text-white uppercase tracking-tight">
                           {team.teamLead.fullName}
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-[11px] font-mono text-gray-500 dark:text-gray-400 italic">
                           {team.teamLead.email}
                         </p>
                       </div>
                     </div>
+                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                      <ShieldCheck size={60} />
+                    </div>
                   </div>
                 )}
 
-                {/* Team Members */}
-                <div className="p-6">
-                  <h3 className="text-sm font-medium text-gray-700 mb-4">
-                    Team Members
+                {/* Team Members List */}
+                <div className="p-8">
+                  <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                    <Users size={12} className="text-blue-500" />
+                    Personnel Directory
                   </h3>
                   {team.members.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                       {team.members.map((member) => (
                         <div
                           key={member.id}
-                          className="flex items-center justify-between group"
+                          className="flex items-center justify-between group/member p-3 rounded-2xl bg-gray-50/50 dark:bg-white/[0.02] border border-gray-100/50 dark:border-white/5 hover:bg-white dark:hover:bg-white/[0.05] transition-all"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                              <span className="text-gray-600 text-sm font-medium">
-                                {member.user.fullName.charAt(0).toUpperCase()}
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center border border-gray-200 dark:border-white/10 group-hover/member:border-blue-500/50 transition-colors">
+                              <span className="text-gray-600 dark:text-gray-400 font-black uppercase text-sm">
+                                {member.user.fullName.charAt(0)}
                               </span>
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-gray-900">
+                              <p className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight group-hover/member:text-blue-600 transition-colors">
                                 {member.user.fullName}
                               </p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-[10px] font-mono text-gray-400 uppercase">
                                 @{member.user.username}
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             <select
                               value={member.role}
                               onChange={(e) =>
@@ -617,7 +592,11 @@ export default function AdminTeamsPage() {
                                   e.target.value,
                                 )
                               }
-                              className={`text-xs px-2 py-1 rounded-full font-medium ${getRoleBadgeColor(member.role)}`}
+                              className={`text-[9px] px-3 py-1.5 rounded-lg font-black uppercase tracking-widest border transition-all appearance-none cursor-pointer hover:scale-105 ${
+                                member.role === 'LEADER' 
+                                  ? 'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20' 
+                                  : 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20'
+                              }`}
                             >
                               <option value="MEMBER">Member</option>
                               <option value="LEADER">Leader</option>
@@ -627,81 +606,64 @@ export default function AdminTeamsPage() {
                               onClick={() =>
                                 handleRemoveMember(team.id, member.id)
                               }
-                              className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-opacity"
+                              className="opacity-0 group-hover/member:opacity-100 p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-all"
                             >
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth="2"
-                                  d="M6 18L18 6M6 6l12 12"
-                                />
-                              </svg>
+                              <Trash2 size={14} />
                             </button>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-sm">
-                      No members in this team yet.
-                    </p>
+                    <div className="p-8 text-center bg-gray-50/50 dark:bg-white/[0.02] rounded-2xl border border-dashed border-gray-200 dark:border-white/10">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        No personnel assigned to this node.
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-            <div className="text-6xl mb-4">👥</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No Teams Found
+          <div className="bg-white dark:bg-[#0a0a0a] rounded-3xl shadow-sm p-20 text-center border border-gray-100 dark:border-white/5 border-dashed">
+            <div className="text-6xl mb-6 grayscale opacity-20 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700">👥</div>
+            <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-widest mb-2">
+              No Teams Detected
             </h3>
-            <p className="text-gray-600 mb-6">
-              Get started by creating your first team.
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto">
+              Initialize your first organizational structure to begin personnel management and resource allocation.
             </p>
             <button
               onClick={() => {
                 resetForm();
                 setShowCreateModal(true);
               }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+              className="px-8 py-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all inline-flex items-center gap-3 text-xs font-black uppercase tracking-widest shadow-[0_0_20px_rgba(37,99,235,0.2)]"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              Create Your First Team
+              <Plus size={20} />
+              Initialize First Team
             </button>
           </div>
         )}
 
         {/* Create Team Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl max-w-md w-full p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
-                Create New Team
-              </h2>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+            <div className="bg-white dark:bg-[#0a0a0a] rounded-3xl max-w-md w-full p-8 border border-gray-100 dark:border-white/10 shadow-2xl animate-in zoom-in-95 duration-300">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">
+                  Create <span className="text-blue-600">New Team</span>
+                </h2>
+                <button onClick={() => setShowCreateModal(false)} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
 
-              <form onSubmit={handleCreateTeam}>
+              <form onSubmit={handleCreateTeam} className="space-y-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
                       Team Name *
                     </label>
                     <input
@@ -710,14 +672,15 @@ export default function AdminTeamsPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, name: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium text-gray-900 dark:text-white"
+                      placeholder="e.g., Alpha Squad"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Description
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                      Operational Objective
                     </label>
                     <textarea
                       value={formData.description}
@@ -728,74 +691,77 @@ export default function AdminTeamsPage() {
                         })
                       }
                       rows={3}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium text-gray-900 dark:text-white"
+                      placeholder="Define the team's primary mission..."
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Department
-                    </label>
-                    <select
-                      value={formData.departmentId}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          departmentId: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">No Department</option>
-                      {departments.map((dept) => (
-                        <option key={dept.id} value={dept.id}>
-                          {dept.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Team Leader
-                    </label>
-                    <select
-                      value={formData.teamLeadId}
-                      onChange={(e) =>
-                        setFormData({ ...formData, teamLeadId: e.target.value })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Select Team Leader</option>
-                      {users
-                        .filter(
-                          (u) => u.role === "TEAMLEADER" || u.role === "ADMIN",
-                        )
-                        .map((user) => (
-                          <option key={user.id} value={user.id}>
-                            {user.fullName} ({user.email}) - {user.role}
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                        Department Node
+                      </label>
+                      <select
+                        value={formData.departmentId}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            departmentId: e.target.value,
+                          })
+                        }
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold text-gray-900 dark:text-white appearance-none"
+                      >
+                        <option value="">No Department</option>
+                        {departments.map((dept) => (
+                          <option key={dept.id} value={dept.id}>
+                            {dept.name}
                           </option>
                         ))}
-                    </select>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                        Team Commander
+                      </label>
+                      <select
+                        value={formData.teamLeadId}
+                        onChange={(e) =>
+                          setFormData({ ...formData, teamLeadId: e.target.value })
+                        }
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold text-gray-900 dark:text-white appearance-none"
+                      >
+                        <option value="">Select Command Lead</option>
+                        {users
+                          .filter(
+                            (u) => u.role === "PROJECT_MANAGER" || u.role === "ADMIN",
+                          )
+                          .map((user) => (
+                            <option key={user.id} value={user.id}>
+                              {user.fullName} ({user.role})
+                            </option>
+                          ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-6 flex gap-3 justify-end">
+                <div className="pt-6 flex gap-3">
                   <button
                     type="button"
                     onClick={() => {
                       setShowCreateModal(false);
                       resetForm();
                     }}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="flex-1 px-6 py-4 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
                   >
-                    Cancel
+                    Abort
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex-1 px-6 py-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all text-[10px] font-black uppercase tracking-widest shadow-[0_0_20px_rgba(37,99,235,0.2)]"
                   >
-                    Create Team
+                    Deploy Team
                   </button>
                 </div>
               </form>
@@ -805,16 +771,28 @@ export default function AdminTeamsPage() {
 
         {/* Edit Team Modal */}
         {showEditModal && selectedTeam && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl max-w-md w-full p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
-                Edit Team
-              </h2>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+            <div className="bg-white dark:bg-[#0a0a0a] rounded-3xl max-w-md w-full p-8 border border-gray-100 dark:border-white/10 shadow-2xl animate-in zoom-in-95 duration-300">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">
+                  Edit <span className="text-blue-600">Team Node</span>
+                </h2>
+                <button 
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setSelectedTeam(null);
+                    resetForm();
+                  }}
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
 
-              <form onSubmit={handleUpdateTeam}>
+              <form onSubmit={handleUpdateTeam} className="space-y-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
                       Team Name *
                     </label>
                     <input
@@ -823,14 +801,14 @@ export default function AdminTeamsPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, name: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium text-gray-900 dark:text-white"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Description
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                      Operational Objective
                     </label>
                     <textarea
                       value={formData.description}
@@ -841,59 +819,71 @@ export default function AdminTeamsPage() {
                         })
                       }
                       rows={3}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium text-gray-900 dark:text-white"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Department
-                    </label>
-                    <select
-                      value={formData.departmentId}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          departmentId: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">No Department</option>
-                      {departments.map((dept) => (
-                        <option key={dept.id} value={dept.id}>
-                          {dept.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                        Department Node
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={formData.departmentId}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              departmentId: e.target.value,
+                            })
+                          }
+                          className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold text-gray-900 dark:text-white appearance-none cursor-pointer"
+                        >
+                          <option value="">No Department</option>
+                          {departments.map((dept) => (
+                            <option key={dept.id} value={dept.id}>
+                              {dept.name}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                          <ChevronDown size={16} />
+                        </div>
+                      </div>
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Team Leader
-                    </label>
-                    <select
-                      value={formData.teamLeadId}
-                      onChange={(e) =>
-                        setFormData({ ...formData, teamLeadId: e.target.value })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Select Team Leader</option>
-                      {users
-                        .filter(
-                          (u) => u.role === "TEAMLEADER" || u.role === "ADMIN",
-                        )
-                        .map((user) => (
-                          <option key={user.id} value={user.id}>
-                            {user.fullName} ({user.email}) - {user.role}
-                          </option>
-                        ))}
-                    </select>
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                        Team Commander
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={formData.teamLeadId}
+                          onChange={(e) =>
+                            setFormData({ ...formData, teamLeadId: e.target.value })
+                          }
+                          className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold text-gray-900 dark:text-white appearance-none cursor-pointer"
+                        >
+                          <option value="">Select Command Lead</option>
+                          {users
+                            .filter(
+                              (u) => u.role === "PROJECT_MANAGER" || u.role === "ADMIN",
+                            )
+                            .map((user) => (
+                              <option key={user.id} value={user.id}>
+                                {user.fullName} ({user.role})
+                              </option>
+                            ))}
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                          <ChevronDown size={16} />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-6 flex gap-3 justify-end">
+                <div className="pt-6 flex gap-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -901,15 +891,15 @@ export default function AdminTeamsPage() {
                       setSelectedTeam(null);
                       resetForm();
                     }}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="flex-1 px-6 py-4 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
                   >
-                    Cancel
+                    Abort
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex-1 px-6 py-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all text-[10px] font-black uppercase tracking-widest shadow-[0_0_20px_rgba(37,99,235,0.2)]"
                   >
-                    Update Team
+                    Update Node
                   </button>
                 </div>
               </form>
@@ -919,45 +909,61 @@ export default function AdminTeamsPage() {
 
         {/* Add Member Modal */}
         {showAddMemberModal && selectedTeam && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl max-w-md w-full p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
-                Add Member to {selectedTeam.name}
-              </h2>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+            <div className="bg-white dark:bg-[#0a0a0a] rounded-3xl max-w-md w-full p-8 border border-gray-100 dark:border-white/10 shadow-2xl animate-in zoom-in-95 duration-300">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter italic">
+                  Add <span className="text-blue-600">Personnel</span>
+                </h2>
+                <button 
+                  onClick={() => {
+                    setShowAddMemberModal(false);
+                    setSelectedTeam(null);
+                  }}
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Select User
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                    Select Target Node
                   </label>
-                  <select
-                    onChange={(e) =>
-                      e.target.value && handleAddMember(e.target.value)
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    defaultValue=""
-                  >
-                    <option value="" disabled>
-                      Choose a user...
-                    </option>
-                    {getAvailableUsers().map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.fullName} ({user.email}) - {user.role}
+                  <div className="relative">
+                    <select
+                      onChange={(e) =>
+                        e.target.value && handleAddMember(e.target.value)
+                      }
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold text-gray-900 dark:text-white appearance-none cursor-pointer"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>
+                        Choose personnel...
                       </option>
-                    ))}
-                  </select>
+                      {getAvailableUsers().map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.fullName} ({user.email})
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                      <ChevronDown size={16} />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mt-6 flex gap-3 justify-end">
+                <div className="pt-4">
                   <button
                     type="button"
                     onClick={() => {
                       setShowAddMemberModal(false);
                       setSelectedTeam(null);
                     }}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="w-full px-6 py-4 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
                   >
-                    Cancel
+                    Abort Assignment
                   </button>
                 </div>
               </div>
